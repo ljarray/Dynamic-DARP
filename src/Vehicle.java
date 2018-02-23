@@ -184,8 +184,7 @@ class Vehicle {
         // location only separation - time and distance separation only
         double getSeparation(LocationPoint startingPoint, LocationPoint endingPoint){
             double separation;
-            separation = startingPoint.timeTo(endingPoint, SPEED) * 8; // time separation * weight
-            //todo make weight defined by Defaults class
+            separation = WEIGHTS[0] * startingPoint.timeTo(endingPoint, SPEED); // time separation * weight
 
             return separation;
         }
@@ -193,22 +192,18 @@ class Vehicle {
         // separation calculation with weights to reduce separation when time window violations are occurring
         double getSeparationWithTimeWindow(LocationPoint startingPoint, LocalDateTime currentTime,
                                            LocationPoint endingPoint, LocalDateTime dropOffTime){
-
-            int WEIGHT_PACKAGE_RIDE_TIME_VIOLATION = 20;
             double separation;
-            double distance;
             double travelTime;
             LocalDateTime arrivalTime;
 
-            distance = startingPoint.distanceTo(endingPoint); // calculate distance separation
-            travelTime = timeToTravel(distance); // add time
+            travelTime = startingPoint.timeTo(endingPoint, SPEED); // add time
             arrivalTime = currentTime.plusSeconds((long)travelTime);
 
             if(arrivalTime.isAfter(dropOffTime)){
-                separation = distance + travelTime - WEIGHT_PACKAGE_RIDE_TIME_VIOLATION * (ChronoUnit.MINUTES.between(arrivalTime, dropOffTime));
+                separation = WEIGHTS[0] * travelTime - WEIGHTS[2] * (ChronoUnit.MINUTES.between(arrivalTime, dropOffTime));
             }
             else {
-                separation = distance + travelTime;
+                separation = WEIGHTS[0] * travelTime;
             }
 
             return separation;
@@ -225,7 +220,7 @@ class Vehicle {
             }
 
             // the number of requests en route cannot exceed the vehicle's available space
-            if (inTransitRequests.size() < MAX_SEATS){
+            if (scheduledPickUps.size() < MAX_SEATS){
                 for (Request pickup : unscheduledRequests){
                     separationTree.put(getSeparation(currentLocation, pickup.getPickUpLoc()), pickup);
                 }
@@ -245,26 +240,88 @@ class Vehicle {
 
             for (Request request: nearestFour){
 
-                LocationPoint moveTo;
-
-                // if statement determines if the pick up or drop off location should be used
-                if (unscheduledRequests.contains(request)){
-                    moveTo = request.getPickUpLoc();
-                }
-                else {
-                    moveTo = request.getDropOffLoc();
-                }
-
-                moveCosts.put(getCostToMove(currentLocation, moveTo), request);
+                moveCosts.put(getCostOfMove(currentLocation, request), request);
             }
 
             return moveCosts.firstEntry().getValue();
         }
 
-        double getCostToMove(LocationPoint startingPoint, LocationPoint endingPoint){
+        double getCostOfMove(LocationPoint startingPoint, Request request){
+
+            // establish local variables
+            LocationPoint location = startingPoint;
+            LocalDateTime time = currentTime;
+            ArrayList<Request> unscheduled = unscheduledRequests;
+            ArrayList<Request> pickUps = scheduledPickUps;
+            ArrayList<Request> dropoffs = scheduledDropoffs;
+
             double cost = 0;
-            // TODO: 2/12/18 write cost of move calculation
-            cost = startingPoint.distanceTo(endingPoint) + startingPoint.timeTo(endingPoint, SPEED);
+
+            LocationPoint moveTo;
+            // if statement determines if the pick up or drop off location should be used
+            if (unscheduled.contains(request)){
+                moveTo = request.getPickUpLoc();
+                // add separation to cost
+                cost += getSeparation(startingPoint, moveTo);
+
+                unscheduled.remove(request);
+                pickUps.add(request);
+                location = moveTo;
+            }
+            else if (pickUps.contains(request)){
+                moveTo = request.getDropOffLoc();
+                // add separation to cost
+                cost += getSeparationWithTimeWindow(location, time, moveTo, request.getDropOffTime());
+
+                pickUps.remove(request);
+                dropoffs.add(request);
+                location = moveTo;
+            }
+            else {
+                // todo improve error message
+                System.out.println("Error: could not calculate the cost of servicing Request " + request.getRequestNum() + ".");
+            }
+
+
+            // calculate the separation for the 3 next nearest neighbor moves. Add their separation to cost.
+            for (int i = 0; i<3; i++){
+
+                if(unscheduled.isEmpty() && pickUps.isEmpty()){
+                    break;
+                }
+
+                // find nearest neighbor
+                TreeMap<Double, Request> separationTree = new TreeMap<Double, Request>();
+
+                for (Request dropoff : pickUps){
+                    // check possible drop off locations first
+                    separationTree.put(getSeparationWithTimeWindow(location, time, dropoff.getDropOffLoc(), dropoff.getDropOffTime()), dropoff);
+                }
+
+                // the number of requests en route cannot exceed the vehicle's available space
+                if (pickUps.size() < MAX_SEATS){
+                    for (Request pickup : unscheduled){
+                        separationTree.put(getSeparation(location, pickup.getPickUpLoc()), pickup);
+                    }
+                }
+
+                request = separationTree.firstEntry().getValue();
+
+                if (unscheduled.contains(request)){
+                    unscheduled.remove(request);
+                    pickUps.add(request);
+                    location = request.getPickUpLoc();
+                }
+                else if (pickUps.contains(request)){
+                    pickUps.remove(request);
+                    dropoffs.add(request);
+                    location = request.getDropOffLoc();
+                }
+
+                cost += separationTree.firstKey();
+
+            }
+
             return cost;
         }
 
