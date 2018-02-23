@@ -25,7 +25,7 @@ public class LocationPoint {
     // return distance between this location and that location
     // measured in statute miles
     public double distanceTo(LocationPoint that) {
-        double STATUTE_MILES_PER_NAUTICAL_MILE = 1.15077945;
+        // double STATUTE_MILES_PER_NAUTICAL_MILE = 1.15077945;
         double KM_PER_NAUTICAL_MILE = 1.85200;
         double lat1 = Math.toRadians(this.latitude);
         double lon1 = Math.toRadians(this.longitude);
@@ -38,15 +38,14 @@ public class LocationPoint {
 
         // each degree on a great circle of Earth is 60 nautical miles
         double nauticalMiles = 60 * Math.toDegrees(angle);
-        //double statuteMiles = STATUTE_MILES_PER_NAUTICAL_MILE * nauticalMiles;
-        //return statuteMiles;
         double km = KM_PER_NAUTICAL_MILE * nauticalMiles;
         return km;
     }
 
     public double timeTo(LocationPoint that, double speed){
+        // returns travel time in seconds
         double distance =  this.distanceTo(that);
-        return distance / speed; // speed should be distance per min
+        return distance * 60 / speed; // speed should be distance per min
     }
 
     // return string representation of this point

@@ -67,9 +67,7 @@ class Request {
     public LocationPoint getPickUpLoc(){
         return pickUpLoc;
     }
-    public LocationPoint getDropOffLoc(){
-        return dropOffLoc;
-    }
+    public LocationPoint getDropOffLoc(){ return dropOffLoc; }
 
     public LocalDateTime getScheduledPickUp(){
         return scheduledPickUp;

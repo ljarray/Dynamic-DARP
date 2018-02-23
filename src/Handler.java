@@ -1,4 +1,5 @@
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 /**
@@ -10,7 +11,7 @@ public class Handler {
 
     private LocalDateTime currentTime;
     
-    public Handler(Data data){
+    public Handler(Data data, Defaults defaults){
         
         currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
 
@@ -32,6 +33,10 @@ public class Handler {
         for (Vehicle vehicle : vehicles){
             vehicle.route.setRoute(currentTime);
         }
+    }
+
+    public String formatTimeStamp(LocalDateTime time){
+        return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
 }
