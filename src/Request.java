@@ -7,7 +7,7 @@ import java.time.temporal.ChronoUnit;
 
 class Request {
 
-    private int requestNum;
+    private int REQUEST_ID;
 
     private LocalDateTime pickUpTime; // earliest pick up time
     private LocalDateTime dropOffTime; // latest drop off time, default is 1 hour after earliest pickup
@@ -19,20 +19,20 @@ class Request {
     private LocalDateTime scheduledDropOff; // drop off time scheduled by the vehicle route
 
 
-    public Request(int requestNum, LocalDateTime pTime, double pLatitude, double pLongitude,
-                   LocalDateTime dTime, double dLatitude, double dLongitude, int seats){
+    public Request(int requestID, LocalDateTime pickUpTime, double pLatitude, double pLongitude,
+                   LocalDateTime dropOffTime, double dLatitude, double dLongitude){
 
-        this.requestNum = requestNum;
-        pickUpTime = pTime;
-        pickUpLoc = new LocationPoint("Request " + requestNum + " pick up", pLatitude, pLongitude);
+        this.REQUEST_ID = requestID;
+        this.pickUpTime = pickUpTime;
+        this.pickUpLoc = new LocationPoint("Request " + REQUEST_ID + " pick up", pLatitude, pLongitude);
 
-        dropOffTime = dTime;
-        dropOffLoc = new LocationPoint("Request " + requestNum + " drop off", dLatitude, dLongitude);
+        this.dropOffTime = dropOffTime;
+        this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
     }
 
     // Set Functions
     public void setRequestNum(int requestNum){
-        this.requestNum = requestNum;
+        this.REQUEST_ID = requestNum;
     }
     public void setPickUpTime(LocalDateTime pickUpTime) {
         this.pickUpTime = pickUpTime;
@@ -56,7 +56,7 @@ class Request {
 
     // Get Functions
     public int getRequestNum() {
-        return requestNum;
+        return REQUEST_ID;
     }
     public LocalDateTime getPickUpTime() {
         return pickUpTime;

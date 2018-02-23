@@ -1,9 +1,4 @@
-import javax.xml.stream.Location;
-import java.io.EOFException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.LineNumberReader;
-import java.util.StringTokenizer;
 
 public class Main {
 
@@ -14,66 +9,65 @@ public class Main {
         Data problem = new Data(file);
         Defaults defaults = new Defaults();
 
-
     }
 }
 
 class Defaults {
-    LocationPoint DEPOT_LOCATION;
-    int TIME_TO_DROPOFF; // time between request creation and scheduled drop off in minutes
-    int ROUTE_LENGTH; // max route length per vehicle in minutes
-    double VEHICLE_DEFAULT_SPEED; // km per minute, default is 50 kmh
-    int MAX_SEATS;
+    private LocationPoint DEPOT_LOCATION;
+    private int TIME_TO_DROPOFF; // time between request creation and scheduled drop off in minutes
+    private int MAX_ROUTE_LENGTH; // max route length per vehicle in minutes
+    private double VEHICLE_DEFAULT_SPEED; // km per minute, default is 50 kmh
+    private int MAX_SEATS;
 
     // weights are based on the customer choice defaults
-    int WEIGHT_DRIVE_TIME = 8;
-    int WEIGHT_ROUTE_DURATION = 1;
-    int WEIGHT_PACKAGE_RIDE_TIME_VIOLATION = 20;
-    int WEIGHT_ROUTE_DURATION_VIOLATION = 20;
+    private int DRIVE_TIME_WEIGHT = 8;
+    private int ROUTE_DURATION_WEIGHT = 1;
+    private int PACKAGE_RIDE_TIME_VIOLATION_WEIGHT = 20;
+    private int ROUTE_DURATION_VIOLATION_WEIGHT = 20;
 
     // Other weights described in the DAR problems are not applicable to our use case
 
     Defaults(LocationPoint DEPOT_LOCATION, int TIME_TO_DROPOFF, int ROUTE_LENGTH, long VEHICLE_DEFAULT_SPEED, int MAX_SEATS,
-             int WEIGHT_DRIVE_TIME, int WEIGHT_ROUTE_DURATION, int WEIGHT_PACKAGE_RIDE_TIME_VIOLATION, int WEIGHT_ROUTE_DURATION_VIOLATION){
+             int WEIGHT_DRIVE_TIME, int ROUTE_DURATION_WEIGHT, int PACKAGE_RIDE_TIME_VIOLATION_WEIGHT, int ROUTE_DURATION_VIOLATION_WEIGHT){
 
         this.DEPOT_LOCATION = DEPOT_LOCATION;
         this.TIME_TO_DROPOFF = TIME_TO_DROPOFF;
-        this.ROUTE_LENGTH = ROUTE_LENGTH;
+        this.MAX_ROUTE_LENGTH = ROUTE_LENGTH;
         this.VEHICLE_DEFAULT_SPEED = VEHICLE_DEFAULT_SPEED;
         this.MAX_SEATS = MAX_SEATS;
 
         // weights are based on the customer choice defaults
-        this.WEIGHT_DRIVE_TIME = WEIGHT_DRIVE_TIME;
-        this.WEIGHT_ROUTE_DURATION = WEIGHT_ROUTE_DURATION;
-        this.WEIGHT_PACKAGE_RIDE_TIME_VIOLATION = WEIGHT_PACKAGE_RIDE_TIME_VIOLATION;
-        this.WEIGHT_ROUTE_DURATION_VIOLATION = WEIGHT_ROUTE_DURATION_VIOLATION;
+        this.DRIVE_TIME_WEIGHT = WEIGHT_DRIVE_TIME;
+        this.ROUTE_DURATION_WEIGHT = ROUTE_DURATION_WEIGHT;
+        this.PACKAGE_RIDE_TIME_VIOLATION_WEIGHT = PACKAGE_RIDE_TIME_VIOLATION_WEIGHT;
+        this.ROUTE_DURATION_VIOLATION_WEIGHT = ROUTE_DURATION_VIOLATION_WEIGHT;
     }
 
     Defaults(){
         // default values when not otherwise defined
         this.DEPOT_LOCATION = new LocationPoint("depot", 41.0785371, 29.0108798);
         this.TIME_TO_DROPOFF = 60; // in min
-        this.ROUTE_LENGTH = 480; // in min
+        this.MAX_ROUTE_LENGTH = 480; // in min
         this.VEHICLE_DEFAULT_SPEED = 0.83333333333; // km per minute, default is 50 kmh
         this.MAX_SEATS = 6;
 
         // weights are based on the customer choice defaults
-        this.WEIGHT_DRIVE_TIME = 8;
-        this.WEIGHT_ROUTE_DURATION = 1;
-        this.WEIGHT_PACKAGE_RIDE_TIME_VIOLATION = 20;
-        this.WEIGHT_ROUTE_DURATION_VIOLATION = 20;
+        this.DRIVE_TIME_WEIGHT = 8;
+        this.ROUTE_DURATION_WEIGHT = 1;
+        this.PACKAGE_RIDE_TIME_VIOLATION_WEIGHT = 20;
+        this.ROUTE_DURATION_VIOLATION_WEIGHT = 20;
     }
 
     // get methods. There are no set methods, since defaults should not change except through initialization
-    public LocationPoint getDEPOT_LOCATION(){ return DEPOT_LOCATION; }
-    public int getTIME_TO_DROPOFF() { return TIME_TO_DROPOFF; }
-    public int getROUTE_LENGTH() { return ROUTE_LENGTH; }
-    public double getVEHICLE_DEFAULT_SPEED() { return VEHICLE_DEFAULT_SPEED; }
-    public int getMAX_SEATS() { return MAX_SEATS; }
-    public int getWEIGHT_DRIVE_TIME() { return WEIGHT_DRIVE_TIME; }
-    public int getWEIGHT_ROUTE_DURATION() { return WEIGHT_ROUTE_DURATION; }
-    public int getWEIGHT_PACKAGE_RIDE_TIME_VIOLATION() { return WEIGHT_PACKAGE_RIDE_TIME_VIOLATION; }
-    public int getWEIGHT_ROUTE_DURATION_VIOLATION() { return WEIGHT_ROUTE_DURATION_VIOLATION; }
+    public LocationPoint getDepotLocation(){ return DEPOT_LOCATION; }
+    public int getTimeToDropOff() { return TIME_TO_DROPOFF; }
+    public int getMaxRouteLength() { return MAX_ROUTE_LENGTH; }
+    public double getVehicleDefaultSpeed() { return VEHICLE_DEFAULT_SPEED; }
+    public int getMaxSeats() { return MAX_SEATS; }
+    public int getDriveTimeWeight() { return DRIVE_TIME_WEIGHT; }
+    public int getRouteDurationWeight() { return ROUTE_DURATION_WEIGHT; }
+    public int getPackageRideTimeViolationWeight() { return PACKAGE_RIDE_TIME_VIOLATION_WEIGHT; }
+    public int getRouteDurationViolationWeight() { return ROUTE_DURATION_VIOLATION_WEIGHT; }
 
 }
 

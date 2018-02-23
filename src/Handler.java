@@ -15,8 +15,14 @@ public class Handler {
         
         currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
 
-        // TODO: 2/12/18 Set the system time 
-        
+        // TODO: 2/12/18 Set the system time
+
+        ArrayList<Vehicle> vehicles = new ArrayList<>();
+
+        int ID = (int)(Math.random() * 999);
+        vehicles.add(new Vehicle( ID, defaults ));
+
+        setRoutes(vehicles);
     }
 
     public void runGeneticAlgorithm(){

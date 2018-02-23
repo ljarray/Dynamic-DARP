@@ -16,44 +16,38 @@ class Vehicle {
     private int MAX_ROUTE_DURATION; // the maximum route duration
     private int MAX_SEATS; // defines the max number of requests the vehicle can hold
     private double SPEED; // speed should be in distance per min
-    private int[] WEIGHTS;
+    private int[] WEIGHTS = {0,0,0,0};
 
-    private ArrayList<Request> requests = new ArrayList<Request>(); // a list to hold the requests
-    private ArrayList<Request> servicedRequests = new ArrayList<Request>();
-    private ArrayList<Request> inTransitRequests = new ArrayList<Request>();
-    private ArrayList<Request> unservicedRequests = new ArrayList<Request>();
+    private ArrayList<Request> requests = new ArrayList<>(); // a list to hold the requests
+    private ArrayList<Request> servicedRequests = new ArrayList<>();
+    private ArrayList<Request> inTransitRequests = new ArrayList<>();
+    private ArrayList<Request> unservicedRequests = new ArrayList<>();
 
     Route route = new Route();
     private LocationPoint location;
 
-//    Vehicle (int VEHICLE_ID, int seats, int duration, double speed, LocationPoint depot_location){
-//        this.VEHICLE_ID = VEHICLE_ID;
-//        this.MAX_SEATS = seats;
-//        this.MAX_ROUTE_DURATION = duration;
-//        this.SPEED = SPEED;
-//        this.DEPOT_LOCATION = depot_location;
-//    }
-
     Vehicle (int VEHICLE_ID, Defaults defaults){
         this.VEHICLE_ID = VEHICLE_ID;
-        this.MAX_SEATS = defaults.getMAX_SEATS();
-        this.MAX_ROUTE_DURATION = defaults.getROUTE_LENGTH();
-        this.SPEED = defaults.getVEHICLE_DEFAULT_SPEED();
-        this.DEPOT_LOCATION = defaults.getDEPOT_LOCATION();
+        this.MAX_SEATS = defaults.getMaxSeats();
+        this.MAX_ROUTE_DURATION = defaults.getMaxRouteLength();
+        this.SPEED = defaults.getVehicleDefaultSpeed();
+        this.DEPOT_LOCATION = defaults.getDepotLocation();
 
-        this.WEIGHTS[0] = defaults.getWEIGHT_DRIVE_TIME();
-        this.WEIGHTS[1] = defaults.getWEIGHT_ROUTE_DURATION();
-        this.WEIGHTS[2] = defaults.getWEIGHT_PACKAGE_RIDE_TIME_VIOLATION();
-        this.WEIGHTS[3] = defaults.getWEIGHT_ROUTE_DURATION_VIOLATION();
+        this.WEIGHTS[0] = defaults.getDriveTimeWeight();
+        this.WEIGHTS[1] = defaults.getRouteDurationWeight();
+        this.WEIGHTS[2] = defaults.getPackageRideTimeViolationWeight();
+        this.WEIGHTS[3] = defaults.getRouteDurationWeight();
+
+        location = DEPOT_LOCATION; // starting location is the depot
     }
 
     // get methods
-    public int getVehicleNum(){ return VEHICLE_ID; }
+    public int getVehicleID(){ return VEHICLE_ID; }
     public int getMaxSeats(){ return MAX_SEATS; }
     public int getMaxRouteDuration(){ return MAX_ROUTE_DURATION; }
 
     // set methods
-    public void setVehicleNum( int VEHICLE_ID ){ this.VEHICLE_ID = VEHICLE_ID; }
+    public void setVehicleID( int VEHICLE_ID ){ this.VEHICLE_ID = VEHICLE_ID; }
     public void setMaxSeats(int MAX_SEATS){
         this.MAX_SEATS = MAX_SEATS;
     }
@@ -102,7 +96,7 @@ class Vehicle {
         }
     }
 
-    public String formatTimeStamp(LocalDateTime time){
+    private String formatTimeStamp(LocalDateTime time){
         return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
@@ -181,17 +175,11 @@ class Vehicle {
 
         }
 
-        // location only separation - time and distance separation only
-        double getSeparation(LocationPoint startingPoint, LocationPoint endingPoint){
-            double separation;
-            separation = WEIGHTS[0] * startingPoint.timeTo(endingPoint, SPEED); // time separation * weight
-
-            return separation;
-        }
 
         // separation calculation with weights to reduce separation when time window violations are occurring
-        double getSeparationWithTimeWindow(LocationPoint startingPoint, LocalDateTime currentTime,
-                                           LocationPoint endingPoint, LocalDateTime dropOffTime){
+        double getSeparation(LocationPoint startingPoint, LocationPoint endingPoint,
+                             LocalDateTime currentTime, LocalDateTime dropOffTime){
+
             double separation;
             double travelTime;
             LocalDateTime arrivalTime;
@@ -200,33 +188,65 @@ class Vehicle {
             arrivalTime = currentTime.plusSeconds((long)travelTime);
 
             if(arrivalTime.isAfter(dropOffTime)){
+                // violation case
                 separation = WEIGHTS[0] * travelTime - WEIGHTS[2] * (ChronoUnit.MINUTES.between(arrivalTime, dropOffTime));
             }
             else {
-                separation = WEIGHTS[0] * travelTime;
+                // non-violation case. Packages which have more time until drop off are given lower priority
+                separation = WEIGHTS[0] * travelTime - ChronoUnit.MINUTES.between(arrivalTime, dropOffTime);
             }
 
             return separation;
         }
 
-        TreeMap<Double, Request> getNearestFour(LocationPoint currentLocation, LocalDateTime currentTime){
+        // separation calculation with weights to reduce separation when time window violations are occurring
+        double getCost(LocationPoint startingPoint, LocationPoint endingPoint,
+                             LocalDateTime currentTime, LocalDateTime dropOffTime){
 
-            TreeMap<Double, Request> nearestFour = new TreeMap<Double, Request>();
-            TreeMap<Double, Request> separationTree = new TreeMap<Double, Request>();
+            double cost;
+            double travelTime;
+            LocalDateTime arrivalTime;
 
-            for (Request dropoff : scheduledPickUps){
+            travelTime = startingPoint.timeTo(endingPoint, SPEED); // add time
+            arrivalTime = currentTime.plusSeconds((long)travelTime);
+
+            if(arrivalTime.isAfter(dropOffTime)){
+                // violation case
+                cost = WEIGHTS[0] * travelTime + WEIGHTS[2] * (ChronoUnit.MINUTES.between(arrivalTime, dropOffTime));
+            }
+            else {
+                // non-violation case
+                cost = WEIGHTS[0] * travelTime - ChronoUnit.MINUTES.between(arrivalTime, dropOffTime);
+            }
+
+            return cost;
+        }
+
+
+        TreeMap<Double, Request> getNearestFour(LocationPoint currentLocation, LocalDateTime currentTime,
+                                                ArrayList<Request> requestsToPickUp, ArrayList<Request> requestsToDropOff){
+
+            TreeMap<Double, Request> nearestFour = new TreeMap<>();
+            TreeMap<Double, Request> separationTree = new TreeMap<>();
+
+            for (Request dropoff : requestsToDropOff){
                 // check possible drop off locations first
-                separationTree.put(getSeparationWithTimeWindow(currentLocation, currentTime, dropoff.getDropOffLoc(), dropoff.getDropOffTime()), dropoff);
+                separationTree.put(
+                        getSeparation(currentLocation, dropoff.getDropOffLoc(), currentTime, dropoff.getDropOffTime()), dropoff);
             }
 
             // the number of requests en route cannot exceed the vehicle's available space
-            if (scheduledPickUps.size() < MAX_SEATS){
-                for (Request pickup : unscheduledRequests){
-                    separationTree.put(getSeparation(currentLocation, pickup.getPickUpLoc()), pickup);
+            if (requestsToPickUp.size() < MAX_SEATS){
+                for (Request pickup : requestsToPickUp){
+                    separationTree.put(
+                            getSeparation(currentLocation, pickup.getPickUpLoc(), currentTime, pickup.getDropOffTime()), pickup);
                 }
             }
 
             for (int i = 0; i < 4; i++){
+
+                if(separationTree.isEmpty()){ break; }
+
                 Double nearest = separationTree.firstKey();
                 nearestFour.put(nearest, separationTree.get(nearest));
                 separationTree.remove(nearest);
@@ -235,99 +255,79 @@ class Vehicle {
             return nearestFour;
         }
 
+        TreeMap<Double, Request> getNearestFour(LocationPoint currentLocation, LocalDateTime currentTime){
+            // Overloaded method with default values for optional inputs
+            return getNearestFour(currentLocation, currentTime, unscheduledRequests, scheduledPickUps);
+        }
+
         Request findCheapestMove(Collection<Request> nearestFour){
-            TreeMap<Double, Request> moveCosts = new TreeMap<Double, Request>();
+            TreeMap<Double, Request> moveCosts = new TreeMap<>();
+            // establish local variables
 
             for (Request request: nearestFour){
 
-                moveCosts.put(getCostOfMove(currentLocation, request), request);
+                LocalDateTime time = currentTime;
+                LocationPoint location = currentLocation; // default to avoid null error
+                LocationPoint nextLocation;
+
+                ArrayList<Request> requestsToPickUp = unscheduledRequests;
+                ArrayList<Request> requestsToDropOff = scheduledPickUps;
+                ArrayList<Request> dropOffs = scheduledDropoffs;
+
+                double cost = 0;
+
+                // if statement determines if the pick up or drop off location should be used
+                if (requestsToPickUp.contains(request)){
+                    nextLocation = request.getPickUpLoc();
+
+                    requestsToPickUp.remove(request);
+                    requestsToDropOff.add(request);
+
+                }
+                else {
+                    nextLocation = request.getDropOffLoc();
+
+                    requestsToDropOff.remove(request);
+                    dropOffs.add(request);
+                }
+
+                // add separation to cost
+                cost += getSeparation(location, nextLocation, time, request.getDropOffTime());
+
+                time.plusSeconds((long)location.timeTo(nextLocation, SPEED));
+
+
+                // calculate the cost for the 3 next nearest neighbor moves. Add to cost.
+                for (int i = 0; i<3; i++){
+
+                    if(requestsToPickUp.isEmpty() && requestsToDropOff.isEmpty()){ break; }
+
+                    // find nearest neighbor
+                    TreeMap<Double, Request> separationTree = getNearestFour(location, time, requestsToPickUp, requestsToDropOff);
+                    request = separationTree.firstEntry().getValue();
+
+                    if (requestsToPickUp.contains(request)){
+                        requestsToPickUp.remove(request);
+                        requestsToDropOff.add(request);
+
+                        nextLocation = request.getPickUpLoc();
+                    }
+                    else if (requestsToDropOff.contains(request)){
+                        requestsToDropOff.remove(request);
+                        dropOffs.add(request);
+
+                        nextLocation = request.getDropOffLoc();
+                    }
+
+                    time.plusSeconds((long)location.timeTo(request.getPickUpLoc(), SPEED));
+                    cost += getCost(location, nextLocation, time, request.getDropOffTime());
+
+                }
+
+                moveCosts.put(cost, request);
             }
 
             return moveCosts.firstEntry().getValue();
-        }
-
-        double getCostOfMove(LocationPoint startingPoint, Request request){
-
-            // establish local variables
-            LocationPoint location = startingPoint;
-            LocalDateTime time = currentTime;
-            ArrayList<Request> unscheduled = unscheduledRequests;
-            ArrayList<Request> pickUps = scheduledPickUps;
-            ArrayList<Request> dropoffs = scheduledDropoffs;
-
-            double cost = 0;
-
-            LocationPoint moveTo;
-            // if statement determines if the pick up or drop off location should be used
-            if (unscheduled.contains(request)){
-                moveTo = request.getPickUpLoc();
-                // add separation to cost
-                cost += getSeparation(startingPoint, moveTo);
-
-                unscheduled.remove(request);
-                pickUps.add(request);
-                location = moveTo;
-            }
-            else if (pickUps.contains(request)){
-                moveTo = request.getDropOffLoc();
-                // add separation to cost
-                cost += getSeparationWithTimeWindow(location, time, moveTo, request.getDropOffTime());
-
-                pickUps.remove(request);
-                dropoffs.add(request);
-                location = moveTo;
-            }
-            else {
-                // todo improve error message
-                System.out.println("Error: could not calculate the cost of servicing Request " + request.getRequestNum() + ".");
-            }
-
-
-            // calculate the separation for the 3 next nearest neighbor moves. Add their separation to cost.
-            for (int i = 0; i<3; i++){
-
-                if(unscheduled.isEmpty() && pickUps.isEmpty()){
-                    break;
-                }
-
-                // find nearest neighbor
-                TreeMap<Double, Request> separationTree = new TreeMap<Double, Request>();
-
-                for (Request dropoff : pickUps){
-                    // check possible drop off locations first
-                    separationTree.put(getSeparationWithTimeWindow(location, time, dropoff.getDropOffLoc(), dropoff.getDropOffTime()), dropoff);
-                }
-
-                // the number of requests en route cannot exceed the vehicle's available space
-                if (pickUps.size() < MAX_SEATS){
-                    for (Request pickup : unscheduled){
-                        separationTree.put(getSeparation(location, pickup.getPickUpLoc()), pickup);
-                    }
-                }
-
-                request = separationTree.firstEntry().getValue();
-
-                if (unscheduled.contains(request)){
-                    unscheduled.remove(request);
-                    pickUps.add(request);
-                    location = request.getPickUpLoc();
-                }
-                else if (pickUps.contains(request)){
-                    pickUps.remove(request);
-                    dropoffs.add(request);
-                    location = request.getDropOffLoc();
-                }
-
-                cost += separationTree.firstKey();
-
-            }
-
-            return cost;
-        }
-
-        double timeToTravel(double distance){
-            //returns travel time in seconds
-            return distance * 60 / SPEED; // speed should be distance per min
         }
 
         void schedulePickUp(Request request, LocalDateTime time){
