@@ -30,6 +30,18 @@ class Request {
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
     }
 
+    public Request(LocalDateTime pickUpTime, double pLatitude, double pLongitude,
+                   LocalDateTime dropOffTime, double dLatitude, double dLongitude){
+
+        // todo implement better method for request IDs that cannot cause duplicates
+        this.REQUEST_ID = (int)(Math.random() * 1000);
+        this.pickUpTime = pickUpTime;
+        this.pickUpLoc = new LocationPoint("Request " + REQUEST_ID + " pick up", pLatitude, pLongitude);
+
+        this.dropOffTime = dropOffTime;
+        this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+    }
+
     // Set Functions
     public void setRequestNum(int requestNum){
         this.REQUEST_ID = requestNum;
@@ -82,6 +94,14 @@ class Request {
             return ChronoUnit.MINUTES.between(dropOffTime, scheduledDropOff);
         }
         else { return 0; }
+    }
+
+    public String toString(){
+        return "Request " + getRequestNum() + ":\n" +
+                "Created: " + getPickUpTime() + "\n" +
+                "Pick Up Location: " + getPickUpLoc().toString() + "\n" +
+                "Drop Off Time: " + getDropOffTime() + "\n" +
+                "Drop Off Location: " + getDropOffLoc();
     }
 
 }

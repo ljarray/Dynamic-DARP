@@ -1,13 +1,21 @@
-import java.io.LineNumberReader;
+import java.io.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
 
     public static void main(String[] args) {
 	// write your code here
 
-        String file = "data/d15_3.txt";
-        Data problem = new Data(file);
+        String file = "data/data_Mac.txt";
         Defaults defaults = new Defaults();
+
+        Data data = new Data(file, defaults);
+        HashMap<LocalDateTime, Request> requestSchedule = data.getRequestSchedule();
 
     }
 }
@@ -73,168 +81,86 @@ class Defaults {
 
 class Data {
 
-    private LineNumberReader in;
+    private HashMap<LocalDateTime, Request> requestSchedule = new HashMap<>();
+    //private LineNumberReader in;
     //private int[] prob = new int[5];
     //private float[][] coo;
     //private int[][] req;
     // private int count;
-    private String filename;
 
-    Data(String file){
-        filename = file;
-        readProblem();
+    // String[] requestData = (EXAMPLE_TEST.split("\\s+"));
+    // s.split("\\s+")
+    // \d\d:\d\d:\d\d // time
+    // \d{2}\.[\d]* // lat/long
+
+    Data(String fileName, Defaults defaults){
+        readProblem(fileName, defaults);
     }
 
-    private void readProblem(){
+    private void readProblem(String fileName, Defaults defaults){
 
+        BufferedReader reader = null;
+
+        try {
+            File file = new File(fileName);
+            reader = new BufferedReader(new FileReader(file));
+
+            String timePattern = "\\d\\d:\\d\\d:\\d\\d";
+            String locationPattern = "\\d{2}\\.[\\d]*";
+
+            Pattern t = Pattern.compile(timePattern);
+            Pattern l = Pattern.compile(locationPattern);
+
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+
+                Matcher mt = t.matcher(line);
+                Matcher ml = l.matcher(line);
+
+                if(mt.find()){
+
+                    LocalDateTime pickupTime = stringToDateTime(mt.group());
+                    LocalDateTime dropoffTime = pickupTime.plusMinutes(defaults.getTimeToDropOff());
+
+                    // System.out.println("Pick Up Time: " + formatTimeStamp(pickupTime) + "\n" +
+                    //                    "Drop Off Time: " + formatTimeStamp(dropoffTime));
+
+                    ArrayList<Double> locations = new ArrayList<>();
+
+                    while (ml.find()){
+                       locations.add(Double.valueOf(ml.group()));
+                    }
+
+                    Request request = new Request(pickupTime, locations.get(0), locations.get(1),
+                            dropoffTime, locations.get(2), locations.get(3));
+
+                    // System.out.println(request.getPickUpLoc().toString());
+                    // System.out.println(request.getDropOffLoc().toString());
+
+                    this.requestSchedule.put(pickupTime, request);
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private LocalDateTime stringToDateTime(String string){
+        String[] time = string.split("\\D");
+        return LocalDate.now().atTime(Integer.valueOf(time[0]), Integer.valueOf(time[1]), Integer.valueOf(time[2]));
+    }
+
+    public HashMap<LocalDateTime, Request> getRequestSchedule() {
+        return requestSchedule;
     }
 }
-
-//class Data {
-//
-//    private LineNumberReader in;
-//    private int[] prob = new int[5];
-//    private float[][] coo;
-//    private int[][] req;
-//    // private int count;
-//    private String filename;
-//
-////method that reads number of depots, number of stops, max duration
-////time of a tour, max capacity of cars, max riding time of customers
-//
-//    public Data(String file) {
-//        filename = file;
-//        readProblem();
-//        read();
-//    }
-//
-//    public void readProblem() {
-//        try {
-//            in = new LineNumberReader(new FileReader(filename));
-//            StringTokenizer dimen;
-////reads the information into a vector prob
-//            for (int i = 1; i < 2; i++) {
-//                String dimension = in.readLine();
-//                dimen = new StringTokenizer(dimension);
-//                while (dimen.hasMoreTokens()) {
-//                    prob[0] = Integer.parseInt(dimen.nextToken());
-//                    prob[1] = Integer.parseInt(dimen.nextToken());
-//                    prob[2] = Integer.parseInt(dimen.nextToken());
-//                    prob[3] = Integer.parseInt(dimen.nextToken());
-//                    prob[4] = Integer.parseInt(dimen.nextToken());
-//                }//while ends
-//            }//for ends
-//        }//try ends
-//        catch (EOFException eof) {
-//            closeFile();
-//        } catch (IOException e) {
-//            System.out.println("1 The file " + filename + " could not be opened "
-//                    + e.toString());
-//            System.exit(1);
-//        }//CATCH ENDS
-//    }//readProblem ends
-//
-////method that returns number of vehicles available
-//
-//    int getNOCar() {
-//        return (prob[0]);
-//    }
-////method that returns number of stops
-//
-//    int getStops() {
-//        return (prob[1]);
-//    }
-////method that returns allowable route duration
-//
-//    int getRouteDuration() {
-//        return (prob[2]);
-//    }
-////method that returns capacity of cars
-//
-//    int getCapacity() {
-//        return (prob[3]);
-//    }
-////method that returns maximum riding time for customers
-//
-//    int getMaxRideTime() {
-//        return (prob[4]);
-//    }
-//
-////method that reads cooridnates of customers into a matrix coo and
-////service time, load change, lower time window and upper time window
-////into matrix req
-//
-//    public void read() {
-//        try {
-//            in = new LineNumberReader(new FileReader(filename));
-//            StringTokenizer tokens;
-////Reads cooridinates of the customers into a matrix coo
-////and rest into a matrix req
-//            int dim = getStops() + 1;
-//            int car = getNOCar();
-//            req = new int[dim][4];
-//            coo = new float[dim][2];
-//            int d = 0;
-//            if (dim - 1 > 0 && dim - 1 < 10) {
-//                d = 0;
-//            }
-//            if (dim - 1 > 9 && dim - 1 < 100) {
-//                d = 1;
-//            }
-//            if (dim - 1 > 99 && dim - 1 < 1000) {
-//                d = 2;
-//            }
-//            if (car > 9 && car < 100) {
-//                d = d + 1;
-//            }
-//            in.skip(12 + d);
-//            for (int i = 0; i < dim + 1; i++) {
-//                String tokenstring = in.readLine();
-//                int index;
-//                tokens = new StringTokenizer(tokenstring);
-//                while (tokens.hasMoreTokens()) {
-//                    index = Integer.parseInt(tokens.nextToken());
-//                    coo[index][0] = Float.parseFloat(tokens.nextToken());
-//                    coo[index][1]
-//                            = Float.parseFloat(tokens.nextToken());
-//                    req[index][0]
-//                            = Integer.parseInt(tokens.nextToken());
-//                    req[index][1]
-//                            = Integer.parseInt(tokens.nextToken());
-//                    req[index][2]
-//                            = Integer.parseInt(tokens.nextToken());
-//                    req[index][3]
-//                            = Integer.parseInt(tokens.nextToken());
-//                }//WHILE ENDS
-//
-//
-//            } //FOR ENDS
-//        } //TRY ENDS
-//        catch (EOFException eof) {
-//            closeFile();
-//        } catch (IOException e) {
-//            System.out.println("2 The file " + filename + " could not be opened "
-//                    + e.toString());
-//        }//CATCH ENDS
-//    }//readRequest ends
-//
-//
-//
-//    private void closeFile() {
-//        try {
-//            in.close();
-//            System.exit(0);
-//        } catch (IOException e) {
-//            System.err.println("Error closing file" + e.toString());
-//            System.exit(1);
-//        }
-//    }//closeFile ends
-//
-//    public float[][] getCoo() {
-//        return (coo);
-//    }
-//
-//    public int[][] getReq() {
-//        return (req);
-//    }
-//} //CLASS Data ENDS
