@@ -49,7 +49,7 @@ public class LocationPoint {
     }
 
     // return string representation of this point
-    public String toString() {
-        return name + " (" + latitude + ", " + longitude + ")";
-    }
+    public String toString() { return  "(" + latitude + ", " + longitude + ")"; }
+
+    // public String toString() { return name + " (" + latitude + ", " + longitude + ")"; }
 }

@@ -1,4 +1,5 @@
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -34,12 +35,16 @@ class Request {
                    LocalDateTime dropOffTime, double dLatitude, double dLongitude){
 
         // todo implement better method for request IDs that cannot cause duplicates
-        this.REQUEST_ID = (int)(Math.random() * 1000);
+        this.REQUEST_ID = (int)(Math.random() * 999);
         this.pickUpTime = pickUpTime;
         this.pickUpLoc = new LocationPoint("Request " + REQUEST_ID + " pick up", pLatitude, pLongitude);
 
         this.dropOffTime = dropOffTime;
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+
+        // System.out.println(this.toString());
+        // System.out.println("Request #" + this.getRequestNum() + " created.");
+
     }
 
     // Set Functions
@@ -98,10 +103,14 @@ class Request {
 
     public String toString(){
         return "Request " + getRequestNum() + ":\n" +
-                "Created: " + getPickUpTime() + "\n" +
+                "Created: " + formatTimeStamp(getPickUpTime()) + "\n" +
                 "Pick Up Location: " + getPickUpLoc().toString() + "\n" +
-                "Drop Off Time: " + getDropOffTime() + "\n" +
+                "Drop Off Time: " + formatTimeStamp(getDropOffTime()) + "\n" +
                 "Drop Off Location: " + getDropOffLoc();
+    }
+
+    private String formatTimeStamp(LocalDateTime time){
+        return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
 }

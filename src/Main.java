@@ -13,9 +13,9 @@ public class Main {
 
         String file = "data/data_Mac.txt";
         Defaults defaults = new Defaults();
-
         Data data = new Data(file, defaults);
-        HashMap<LocalDateTime, Request> requestSchedule = data.getRequestSchedule();
+
+        Handler eventHandler = new Handler(data, defaults);
 
     }
 }
@@ -25,6 +25,7 @@ class Defaults {
     private int TIME_TO_DROPOFF; // time between request creation and scheduled drop off in minutes
     private int MAX_ROUTE_LENGTH; // max route length per vehicle in minutes
     private double VEHICLE_DEFAULT_SPEED; // km per minute, default is 50 kmh
+    private int MAX_VEHICLES;
     private int MAX_SEATS;
 
     // weights are based on the customer choice defaults
@@ -35,13 +36,14 @@ class Defaults {
 
     // Other weights described in the DAR problems are not applicable to our use case
 
-    Defaults(LocationPoint DEPOT_LOCATION, int TIME_TO_DROPOFF, int ROUTE_LENGTH, long VEHICLE_DEFAULT_SPEED, int MAX_SEATS,
+    Defaults(LocationPoint DEPOT_LOCATION, int TIME_TO_DROPOFF, int ROUTE_LENGTH, long VEHICLE_DEFAULT_SPEED, int MAX_VEHICLES, int MAX_SEATS,
              int WEIGHT_DRIVE_TIME, int ROUTE_DURATION_WEIGHT, int PACKAGE_RIDE_TIME_VIOLATION_WEIGHT, int ROUTE_DURATION_VIOLATION_WEIGHT){
 
         this.DEPOT_LOCATION = DEPOT_LOCATION;
         this.TIME_TO_DROPOFF = TIME_TO_DROPOFF;
         this.MAX_ROUTE_LENGTH = ROUTE_LENGTH;
         this.VEHICLE_DEFAULT_SPEED = VEHICLE_DEFAULT_SPEED;
+        this.MAX_VEHICLES = MAX_VEHICLES;
         this.MAX_SEATS = MAX_SEATS;
 
         // weights are based on the customer choice defaults
@@ -57,6 +59,7 @@ class Defaults {
         this.TIME_TO_DROPOFF = 60; // in min
         this.MAX_ROUTE_LENGTH = 480; // in min
         this.VEHICLE_DEFAULT_SPEED = 0.83333333333; // km per minute, default is 50 kmh
+        this.MAX_VEHICLES = 10;
         this.MAX_SEATS = 6;
 
         // weights are based on the customer choice defaults
@@ -71,6 +74,7 @@ class Defaults {
     public int getTimeToDropOff() { return TIME_TO_DROPOFF; }
     public int getMaxRouteLength() { return MAX_ROUTE_LENGTH; }
     public double getVehicleDefaultSpeed() { return VEHICLE_DEFAULT_SPEED; }
+    public int getMaxVehicles() { return MAX_VEHICLES; }
     public int getMaxSeats() { return MAX_SEATS; }
     public int getDriveTimeWeight() { return DRIVE_TIME_WEIGHT; }
     public int getRouteDurationWeight() { return ROUTE_DURATION_WEIGHT; }
@@ -82,16 +86,7 @@ class Defaults {
 class Data {
 
     private HashMap<LocalDateTime, Request> requestSchedule = new HashMap<>();
-    //private LineNumberReader in;
-    //private int[] prob = new int[5];
-    //private float[][] coo;
-    //private int[][] req;
-    // private int count;
-
-    // String[] requestData = (EXAMPLE_TEST.split("\\s+"));
-    // s.split("\\s+")
-    // \d\d:\d\d:\d\d // time
-    // \d{2}\.[\d]* // lat/long
+    private ArrayList<Request> requests = new ArrayList<>();
 
     Data(String fileName, Defaults defaults){
         readProblem(fileName, defaults);
@@ -114,7 +109,8 @@ class Data {
             String line;
 
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+
+                // System.out.println(line);
 
                 Matcher mt = t.matcher(line);
                 Matcher ml = l.matcher(line);
@@ -133,13 +129,21 @@ class Data {
                        locations.add(Double.valueOf(ml.group()));
                     }
 
-                    Request request = new Request(pickupTime, locations.get(0), locations.get(1),
-                            dropoffTime, locations.get(2), locations.get(3));
+                    if(locations.size() == 4){
 
-                    // System.out.println(request.getPickUpLoc().toString());
-                    // System.out.println(request.getDropOffLoc().toString());
+                        Request request = new Request(pickupTime, locations.get(0), locations.get(1),
+                                dropoffTime, locations.get(2), locations.get(3));
 
-                    this.requestSchedule.put(pickupTime, request);
+                        // System.out.println(request.getPickUpLoc().toString());
+                        // System.out.println(request.getDropOffLoc().toString());
+
+                        this.requestSchedule.put(pickupTime, request);
+                        this.requests.add(request);
+
+                    } else {
+                        System.out.println("Error: there were not the right number of coordinates in data line: \n" + line);
+                    }
+
                 }
             }
 
@@ -163,4 +167,5 @@ class Data {
     public HashMap<LocalDateTime, Request> getRequestSchedule() {
         return requestSchedule;
     }
+    public ArrayList<Request> getRequests(){ return this.requests; }
 }
