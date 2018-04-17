@@ -30,8 +30,9 @@ public class Handler {
 
         currentTime = setStartTime(requests);
 
-        assignRequestToAVehicle(requests.get(0));
-
+        for (int i = 0; i < 5; i++){
+            assignRequestToAVehicle(requests.get(i));
+        }
 
     }
 
@@ -42,10 +43,8 @@ public class Handler {
             vehicles.add(v);
             v.addRequest(request);
 
-            System.out.println("Request #" + request.getRequestNum()
-                    + " added to Vehicle #" + v.getVehicleID() + ".");
-
-            System.out.println("Setting route for Vehicle #" + v.getVehicleID() + "...");
+            System.out.println("\nRequest #" + request.getRequestNum()
+                    + " added to vehicle #" + v.getVehicleID() + ".");
 
             setRouteForVehicle(v);
 

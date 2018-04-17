@@ -184,7 +184,7 @@ class Vehicle {
                 routeStartTime = currentTime;
                 nextLocation = firstRequest.getPickUpLoc();
 
-                currentTime.plusSeconds((long)DEPOT_LOCATION.timeTo(nextLocation, SPEED));
+                currentTime = currentTime.plusSeconds((long)DEPOT_LOCATION.timeTo(nextLocation, SPEED));
                 currentLocation = nextLocation;
 
                 schedulePickUp(firstRequest, currentTime);
@@ -193,7 +193,7 @@ class Vehicle {
 
             // while there are still requests to schedule
 
-            while (!unscheduledRequests.isEmpty() && !scheduledPickUps.isEmpty()){
+            while (!unscheduledRequests.isEmpty() || !scheduledPickUps.isEmpty()){
 
                 TreeMap<Double, Request> nearestFour = getNearestFour(currentLocation, currentTime);
                 Request nextRequest = findCheapestMove(nearestFour.values());
@@ -206,7 +206,7 @@ class Vehicle {
                 }
                 else if (inTransitRequests.contains(nextRequest)){
                     nextLocation = nextRequest.getDropOffLoc();
-                    currentTime.plusSeconds((long)currentLocation.timeTo(nextLocation, SPEED));
+                    currentTime = currentTime.plusSeconds((long)currentLocation.timeTo(nextLocation, SPEED));
                     scheduleDropOff(nextRequest, currentTime);
                 } else {
                     System.out.println("Error: Next Location was not set at time " + formatTimeStamp(currentTime) + " for Request "
@@ -216,9 +216,10 @@ class Vehicle {
                 currentLocation = nextLocation;
             }
 
-            routeDuration = ChronoUnit.MINUTES.between(routeStartTime, currentTime);
+            routeDuration = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0;
 
-            System.out.println(this.toString());
+            System.out.println(this);
+            System.out.printf("Route Duration: %.2f\n", routeDuration);
 
         }
 
@@ -317,9 +318,9 @@ class Vehicle {
                 LocationPoint location = currentLocation; // default to avoid null error
                 LocationPoint nextLocation;
 
-                ArrayList<Request> requestsToPickUp = unscheduledRequests;
-                ArrayList<Request> requestsToDropOff = scheduledPickUps;
-                ArrayList<Request> dropOffs = scheduledDropoffs;
+                ArrayList<Request> requestsToPickUp = new ArrayList<>(unscheduledRequests);
+                ArrayList<Request> requestsToDropOff = new ArrayList<>(scheduledPickUps);
+                ArrayList<Request> dropOffs = new ArrayList<>(scheduledDropoffs);
 
                 double cost = 0;
 
@@ -341,7 +342,7 @@ class Vehicle {
                 // add separation to cost
                 cost += getSeparation(location, nextLocation, time, request.getDropOffTime());
 
-                time.plusSeconds((long)location.timeTo(nextLocation, SPEED));
+                time = time.plusSeconds((long)location.timeTo(nextLocation, SPEED));
 
 
                 // calculate the cost for the 3 next nearest neighbor moves. Add to cost.
@@ -366,7 +367,7 @@ class Vehicle {
                         nextLocation = request.getDropOffLoc();
                     }
 
-                    time.plusSeconds((long)location.timeTo(request.getPickUpLoc(), SPEED));
+                    time = time.plusSeconds((long)location.timeTo(request.getPickUpLoc(), SPEED));
                     cost += getCost(location, nextLocation, time, request.getDropOffTime());
 
                 }
@@ -414,8 +415,8 @@ class Vehicle {
 
             // TODO: 4/12/18 fix cost calculation on driveTime
 
-            driveTime = ChronoUnit.MINUTES.between(routeStartTime, currentTime); // time actually traveling
-            routeDuration = ChronoUnit.MINUTES.between(routeStartTime, currentTime);
+            driveTime = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0; // time actually traveling
+            routeDuration = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0;
 
             for (Request request : requests){
                 packageRideTimeViolations += request.calcDropOffWait();
@@ -468,11 +469,11 @@ class Vehicle {
 
         public String toString(){
 
-            String s = "";
+            String s = "\nRoute for Vehicle #" + getVehicleID() + "\n" + "------------------------------\n";
             Enumeration<LocalDateTime> times = schedule.keys();
             while (times.hasMoreElements()){
                 LocalDateTime key = times.nextElement();
-                s += formatTimeStamp(key) + "\t" + "request #" + schedule.get(key).getRequestNum() + "\n";
+                s += formatTimeStamp(key) + "\t" + "Request #" + schedule.get(key).getRequestNum() + "\n";
             }
 
             return s;

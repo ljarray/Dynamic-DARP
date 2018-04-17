@@ -95,8 +95,11 @@ class Request {
 
     // returns the difference between the requested and scheduled drop off times in minutes
     long calcDropOffWait(){
-        if (scheduledDropOff.isAfter(dropOffTime)){
-            return ChronoUnit.MINUTES.between(dropOffTime, scheduledDropOff);
+        if(scheduledDropOff != null){
+            if (scheduledDropOff.isAfter(dropOffTime)){
+                return ChronoUnit.MINUTES.between(dropOffTime, scheduledDropOff);
+            }
+            else { return 0; }
         }
         else { return 0; }
     }
@@ -111,6 +114,28 @@ class Request {
 
     private String formatTimeStamp(LocalDateTime time){
         return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+    }
+
+    // Overriding equals() to compare two Request objects
+    @Override
+    public boolean equals(Object o) {
+
+        // If the object is compared with itself then return true
+        if (o == this) {
+            return true;
+        }
+
+        /* Check if o is an instance of Complex or not
+          "null instanceof [type]" also returns false */
+        if (!(o instanceof Request)) {
+            return false;
+        }
+
+        // typecast o to Complex so that we can compare data members
+        Request c = (Request) o;
+
+        // Compare the data members and return accordingly
+        return Double.compare(getRequestNum(), c.getRequestNum()) == 0;
     }
 
 }
