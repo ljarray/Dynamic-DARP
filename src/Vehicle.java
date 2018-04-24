@@ -16,13 +16,12 @@ class Vehicle {
     private double SPEED; // speed should be in distance per min
     private int[] WEIGHTS = {0,0,0,0};
 
-    private ArrayList<Request> requests = new ArrayList<>(); // a list to hold the requests
-    private ArrayList<Request> servicedRequests = new ArrayList<>();
-    private ArrayList<Request> inTransitRequests = new ArrayList<>();
-    private ArrayList<Request> unservicedRequests = new ArrayList<>();
+    private HashMap<Integer, Request> requests = new HashMap<>();
+    private HashMap<Integer, Request> unservicedRequests = new HashMap<>();
+    private HashMap<Integer, Request> inTransitRequests = new HashMap<>();
+    private HashMap<Integer, Request> deliveredRequests = new HashMap<>();
 
-//    private TreeMap <LocalDateTime, Request> finalRoute;
-    private ArrayList<String> transactions;
+    private ArrayList<String> transactions = new ArrayList<>();
 
     Route route;
     private LocationPoint location;
@@ -45,7 +44,7 @@ class Vehicle {
 
     Vehicle (Defaults defaults){
         // todo implement better method for request IDs that cannot cause duplicates
-        this.VEHICLE_ID = (int)(Math.random() * 999);
+        this.VEHICLE_ID = (int)(Math.random() * 899 + 100); // generates a number between 100 - 999
         this.MAX_SEATS = defaults.getMaxSeats();
         this.MAX_ROUTE_DURATION = defaults.getMaxRouteLength();
         this.SPEED = defaults.getVehicleDefaultSpeed();
@@ -59,16 +58,18 @@ class Vehicle {
         route = new Route();
         location = DEPOT_LOCATION; // starting location is the depot
 
-        System.out.println("\nVehicle #" + getVehicleID() + " created.");
+        System.out.println("\nVehicle #" + getID() + " created.");
 
 
     }
 
     // get methods
-    public int getVehicleID(){ return VEHICLE_ID; }
+    public int getID(){ return VEHICLE_ID; }
     public int getMaxSeats(){ return MAX_SEATS; }
     public int getMaxRouteDuration(){ return MAX_ROUTE_DURATION; }
-    public ArrayList<Request> getRequests(){ return requests; }
+    public HashMap<Integer, Request> getRequests(){ return requests; }
+    public int getFilledSeats(){ return requests.size() - deliveredRequests.size(); }
+
 
     // set methods
     public void setVehicleID( int VEHICLE_ID ){ this.VEHICLE_ID = VEHICLE_ID; }
@@ -80,63 +81,109 @@ class Vehicle {
     }
 
     public void addRequest(Request request){
-        requests.add(request);
-        unservicedRequests.add(request);
+
+        requests.put(request.getID(), request);
+        unservicedRequests.put(request.getID(), request);
+
+        transactions.add(formatTimeStamp(request.getPickUpTime()) + "\t" + "Request #" + request.getID() + " was added");
+
     }
 
     public void removeRequest(Request request, LocalDateTime time){
-        if (unservicedRequests.contains(request)){
-            unservicedRequests.remove(request);
-            requests.remove(request);
+        if (unservicedRequests.containsKey(request.getID())){
+            unservicedRequests.remove(request.getID(), request);
+            requests.remove(request.getID(), request);
         }
         else {
-            System.out.println("Error: Request " + request.getRequestNum() + " could not be removed from " +  this.VEHICLE_ID +
+            System.out.println("Error: Request " + request.getID() + " could not be removed from " +  this.VEHICLE_ID +
                     "at time " + formatTimeStamp(time) + ". It was not on the list of unserviced requests for this vehicle." );
             // time should be changed to LocalDateTime.now() for real world applications
         }
     }
 
     public void pickUpRequest(Request request, LocalDateTime time){
-        if (unservicedRequests.contains(request)){
-            unservicedRequests.remove(request);
-            inTransitRequests.add(request);
+
+        // printUnservicedRequests();
+
+        if (unservicedRequests.containsKey(request.getID())){
+            unservicedRequests.remove(request.getID(), request);
+            inTransitRequests.put(request.getID(), request);
             request.setPickUpTime(time);
+            request.setStatus("In Transit");
+
+            System.out.println("Request #" + request.getID() + " is now in transit.");
 
             // TODO: 4/13/18 update clock to account for time to pick up
-            transactions.add(formatTimeStamp(time) + "\t" + "picked up request #" + request.getRequestNum());
+            transactions.add(formatTimeStamp(time) + "\t" + "Request #" + request.getID() + " was picked up");
         }
         else {
-            System.out.println("Error: Request " + request.getRequestNum() + " was not picked up at time " + formatTimeStamp(time) +
+            System.out.println("Error: Request " + request.getID() + " was not picked up at time " + formatTimeStamp(time) +
                     ". It was not on the list of unserviced requests for vehicle " + this.VEHICLE_ID + ".");
             // time should be changed to LocalDateTime.now() for real world applications
         }
     }
 
     public void dropOffRequest(Request request, LocalDateTime time){
-        if (inTransitRequests.contains(request)){
-            inTransitRequests.remove(request);
-            servicedRequests.add(request);
+
+        if (unservicedRequests.containsKey(request.getID())){
+            pickUpRequest(request, request.getScheduledPickUp());
+        }
+        if (inTransitRequests.containsKey(request.getID())){
+            inTransitRequests.remove(request.getID(), request);
+            deliveredRequests.put(request.getID(), request);
             request.setDropOffTime(time);
+            request.setStatus("Delivered");
+
+            System.out.println("Request #" + request.getID() + " has been delivered.");
 
             // TODO: 4/13/18 update clock to account for time to drop off
-            transactions.add(formatTimeStamp(time) + "\t" + "dropped off request #" + request.getRequestNum());
+            transactions.add(formatTimeStamp(time) + "\t" + "Request #" + request.getID() + " was dropped off");
         }
         else {
-            System.out.println("Error: Request " + request.getRequestNum() + " was not dropped off at time " + formatTimeStamp(time) +
+            System.out.println("Error: Request " + request.getID() + " was not dropped off at time " + formatTimeStamp(time) +
                     ". It was not on the list of in transit requests for vehicle " + this.VEHICLE_ID + ".");
             // time should be changed to LocalDateTime.now() for real world applications
         }
     }
 
-    public void printSchedule(){
-        System.out.print("SCHEDULE FOR VEHICLE #" + this.getVehicleID() + "\n------------------------------");
-        System.out.print(route.toString());
-    }
-
     public void printTransactions(){
-        System.out.print("TRANSACTIONS FOR VEHICLE #" + this.getVehicleID() + "\n------------------------------");
+        System.out.print("TRANSACTIONS FOR VEHICLE #" + this.getID() + "\n------------------------------");
         for (String s : transactions) {
             System.out.println(s);
+        }
+    }
+
+    private void printUnservicedRequests(){
+        if(!unservicedRequests.isEmpty()) {
+            System.out.println("\nUnserviced Requests\n" + "------------------------------" );
+            for (Request r : unservicedRequests.values()){
+                System.out.println("Request #" + r.getID());
+            }
+        }
+    }
+
+    private void printInTransitRequests(){
+        if(!inTransitRequests.isEmpty()) {
+            System.out.println("\nIn Transit Requests\n" + "------------------------------" );
+            for (Request r : inTransitRequests.values()){
+                System.out.println("Request #" + r.getID());
+            }
+        }
+    }
+
+    private void printDeliveredRequests(){
+        if(!deliveredRequests.isEmpty()) {
+            System.out.println("\nDelivered Requests\n" + "------------------------------" );
+            for (Request r : deliveredRequests.values()){
+                System.out.println("Request #" + r.getID());
+            }
+        }
+    }
+
+    private void printStatuses(HashMap<Integer, Request> requests){
+        System.out.println("\nRequest Statuses\n" + "------------------------------" );
+        for (Integer i : requests.keySet()){
+            System.out.println("Request #" + i + ": " + requests.get(i).getStatus() );
         }
     }
 
@@ -147,39 +194,55 @@ class Vehicle {
     // Each vehicle has a route
     class Route {
 
-        double routeDuration = 0;
+        double routeDuration;
         LocalDateTime routeStartTime;
         Request firstRequest;
-        private Hashtable <LocalDateTime, Request> schedule = new Hashtable<>();
+        private TreeMap <LocalDateTime, Request> schedule = new TreeMap<>();
 
         LocalDateTime currentTime;
         LocationPoint currentLocation;
         LocationPoint nextLocation;
 
-        ArrayList<Request> unscheduledRequests;
-        ArrayList<Request> scheduledPickUps;
-        ArrayList<Request> scheduledDropoffs;
+        HashMap<Integer, Request> unscheduledRequests;
+        HashMap<Integer, Request> scheduledPickUps;
+        HashMap<Integer, Request> scheduledDropoffs;
 
-        void setRoute(LocalDateTime now){
+        Route(){
 
-            currentTime = now; // = LocalDateTime.now(); in a real world application, for this program, time is given by the handler
+            this.routeDuration = 0;
+            this.currentTime = LocalDateTime.now();
+            this.currentLocation = DEPOT_LOCATION;
+
+            this.unscheduledRequests = new HashMap<>();
+            this.scheduledPickUps = new HashMap<>();
+            this.scheduledDropoffs = new HashMap<>();
+
+        }
+
+        void setRoute(LocalDateTime currentTime){ // currentTime = LocalDateTime.now(); in a real world application
+
+            updateRequests(currentTime);
+            schedule.clear();
+
             currentLocation = location;
 
-            unscheduledRequests = unservicedRequests;
-            scheduledPickUps = inTransitRequests;
-            scheduledDropoffs = servicedRequests;
+            unscheduledRequests = new HashMap<>(unservicedRequests);
+            scheduledPickUps = new HashMap<>(inTransitRequests);
+            scheduledDropoffs = new HashMap<>(deliveredRequests);
 
             // If no requests have been picked up or serviced, find the first request for the day, based on earliest pickup
             if(scheduledPickUps.isEmpty() && scheduledDropoffs.isEmpty()){
 
                 LocalDateTime earliestPickup = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
 
-                for (Request request: unscheduledRequests){
-                    if(earliestPickup.isAfter(request.getPickUpTime())){
+                for (Request request: unscheduledRequests.values()){
+                    if(request.getPickUpTime().isBefore(earliestPickup)){
                         earliestPickup = request.getPickUpTime();
                         firstRequest = request;
                     }
                 }
+
+                // System.out.println("The first request is request #" + firstRequest.getID());
 
                 routeStartTime = currentTime;
                 nextLocation = firstRequest.getPickUpLoc();
@@ -193,33 +256,39 @@ class Vehicle {
 
             // while there are still requests to schedule
 
+            int breakCount = 0;
+
             while (!unscheduledRequests.isEmpty() || !scheduledPickUps.isEmpty()){
+
+                if (breakCount > 5){
+                    break;
+                }
 
                 TreeMap<Double, Request> nearestFour = getNearestFour(currentLocation, currentTime);
                 Request nextRequest = findCheapestMove(nearestFour.values());
 
                 // if statement determines if the pick up or drop off location should be used
-                if (unscheduledRequests.contains(nextRequest)){
+
+                if (unscheduledRequests.containsValue(nextRequest)){
                     nextLocation = nextRequest.getPickUpLoc();
-                    currentTime.plusSeconds((long)currentLocation.timeTo(nextLocation, SPEED));
+                    currentTime = currentTime.plusSeconds((long)currentLocation.timeTo(nextLocation, SPEED));
                     schedulePickUp(nextRequest, currentTime);
                 }
-                else if (inTransitRequests.contains(nextRequest)){
+                else if (scheduledPickUps.containsValue(nextRequest)){
                     nextLocation = nextRequest.getDropOffLoc();
                     currentTime = currentTime.plusSeconds((long)currentLocation.timeTo(nextLocation, SPEED));
                     scheduleDropOff(nextRequest, currentTime);
                 } else {
                     System.out.println("Error: Next Location was not set at time " + formatTimeStamp(currentTime) + " for Request "
-                            + nextRequest.getRequestNum() + "." );
+                            + nextRequest.getID() + "." );
                 }
 
                 currentLocation = nextLocation;
+
+                breakCount++;
             }
 
             routeDuration = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0;
-
-            System.out.println(this);
-            System.out.printf("Route Duration: %.2f\n", routeDuration);
 
         }
 
@@ -232,7 +301,7 @@ class Vehicle {
             double travelTime;
             LocalDateTime arrivalTime;
 
-            travelTime = startingPoint.timeTo(endingPoint, SPEED); // add time
+            travelTime = startingPoint.timeTo(endingPoint, SPEED) / 60.0; // add time
             arrivalTime = currentTime.plusSeconds((long)travelTime);
 
             if(arrivalTime.isAfter(dropOffTime)){
@@ -241,7 +310,7 @@ class Vehicle {
             }
             else {
                 // non-violation case. Packages which have more time until drop off are given lower priority
-                separation = WEIGHTS[0] * travelTime - ChronoUnit.MINUTES.between(arrivalTime, dropOffTime);
+                separation = WEIGHTS[0] * travelTime + ChronoUnit.MINUTES.between(arrivalTime, dropOffTime);
             }
 
             return separation;
@@ -272,12 +341,12 @@ class Vehicle {
 
 
         TreeMap<Double, Request> getNearestFour(LocationPoint currentLocation, LocalDateTime currentTime,
-                                                ArrayList<Request> requestsToPickUp, ArrayList<Request> requestsToDropOff){
+                                                HashMap<Integer, Request> requestsToPickUp, HashMap<Integer, Request> requestsToDropOff){
 
             TreeMap<Double, Request> nearestFour = new TreeMap<>();
             TreeMap<Double, Request> separationTree = new TreeMap<>();
 
-            for (Request dropoff : requestsToDropOff){
+            for (Request dropoff : requestsToDropOff.values()){
                 // check possible drop off locations first
                 separationTree.put(
                         getSeparation(currentLocation, dropoff.getDropOffLoc(), currentTime, dropoff.getDropOffTime()), dropoff);
@@ -285,7 +354,7 @@ class Vehicle {
 
             // the number of requests en route cannot exceed the vehicle's available space
             if (requestsToPickUp.size() < MAX_SEATS){
-                for (Request pickup : requestsToPickUp){
+                for (Request pickup : requestsToPickUp.values()){
                     separationTree.put(
                             getSeparation(currentLocation, pickup.getPickUpLoc(), currentTime, pickup.getDropOffTime()), pickup);
                 }
@@ -318,25 +387,25 @@ class Vehicle {
                 LocationPoint location = currentLocation; // default to avoid null error
                 LocationPoint nextLocation;
 
-                ArrayList<Request> requestsToPickUp = new ArrayList<>(unscheduledRequests);
-                ArrayList<Request> requestsToDropOff = new ArrayList<>(scheduledPickUps);
-                ArrayList<Request> dropOffs = new ArrayList<>(scheduledDropoffs);
+                HashMap<Integer, Request> requestsToPickUp = new HashMap<>(unscheduledRequests);
+                HashMap<Integer, Request> requestsToDropOff = new HashMap<>(scheduledPickUps);
+                HashMap<Integer, Request> dropOffs = new HashMap<>(scheduledDropoffs);
 
                 double cost = 0;
 
                 // if statement determines if the pick up or drop off location should be used
-                if (requestsToPickUp.contains(request)){
+                if (requestsToPickUp.containsKey(request.getID())){
                     nextLocation = request.getPickUpLoc();
 
-                    requestsToPickUp.remove(request);
-                    requestsToDropOff.add(request);
+                    requestsToPickUp.remove(request.getID(), request);
+                    requestsToDropOff.put(request.getID(), request);
 
                 }
                 else {
                     nextLocation = request.getDropOffLoc();
 
-                    requestsToDropOff.remove(request);
-                    dropOffs.add(request);
+                    requestsToDropOff.remove(request.getID(), request);
+                    dropOffs.put(request.getID(), request);
                 }
 
                 // add separation to cost
@@ -354,15 +423,15 @@ class Vehicle {
                     TreeMap<Double, Request> separationTree = getNearestFour(location, time, requestsToPickUp, requestsToDropOff);
                     request = separationTree.firstEntry().getValue();
 
-                    if (requestsToPickUp.contains(request)){
-                        requestsToPickUp.remove(request);
-                        requestsToDropOff.add(request);
+                    if (requestsToPickUp.containsKey(request.getID())){
+                        requestsToPickUp.remove(request.getID(), request);
+                        requestsToDropOff.put(request.getID(), request);
 
                         nextLocation = request.getPickUpLoc();
                     }
-                    else if (requestsToDropOff.contains(request)){
-                        requestsToDropOff.remove(request);
-                        dropOffs.add(request);
+                    else if (requestsToDropOff.containsKey(request.getID())){
+                        requestsToDropOff.remove(request.getID(), request);
+                        dropOffs.put(request.getID(), request);
 
                         nextLocation = request.getDropOffLoc();
                     }
@@ -379,9 +448,10 @@ class Vehicle {
         }
 
         void schedulePickUp(Request request, LocalDateTime time){
-            if (unscheduledRequests.contains(request)){
-                unscheduledRequests.remove(request);
-                scheduledPickUps.add(request);
+
+            if (unscheduledRequests.containsKey(request.getID())){
+                unscheduledRequests.remove(request.getID(), request);
+                scheduledPickUps.put(request.getID(), request);
                 request.setScheduledPickUp(time);
 
                 schedule.put(time, request);
@@ -392,9 +462,10 @@ class Vehicle {
         }
 
         void scheduleDropOff(Request request, LocalDateTime time){
-            if (inTransitRequests.contains(request)){
-                inTransitRequests.remove(request);
-                servicedRequests.add(request);
+
+            if (scheduledPickUps.containsKey(request.getID())){
+                scheduledPickUps.remove(request.getID(), request);
+                scheduledDropoffs.put(request.getID(), request);
                 request.setScheduledDropOff(time);
 
                 schedule.put(time, request);
@@ -418,7 +489,7 @@ class Vehicle {
             driveTime = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0; // time actually traveling
             routeDuration = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0;
 
-            for (Request request : requests){
+            for (Request request : requests.values()){
                 packageRideTimeViolations += request.calcDropOffWait();
             }
 
@@ -448,7 +519,7 @@ class Vehicle {
 
             // TODO: 4/13/18 Improve calculation of penalty terms 
 
-            for ( Request r : requests){
+            for ( Request r : requests.values()){
                 minPickUpDistance = Math.min(minPickUpDistance, request.getPickUpLoc().distanceTo(r.getPickUpLoc()));
                 minPickUpDistance = Math.min(minPickUpDistance, request.getPickUpLoc().distanceTo(r.getDropOffLoc()));
 
@@ -467,18 +538,119 @@ class Vehicle {
             return cost;
         }
 
-        public String toString(){
+        public void updateRequests(LocalDateTime currentTime){
 
-            String s = "\nRoute for Vehicle #" + getVehicleID() + "\n" + "------------------------------\n";
-            Enumeration<LocalDateTime> times = schedule.keys();
-            while (times.hasMoreElements()){
-                LocalDateTime key = times.nextElement();
-                s += formatTimeStamp(key) + "\t" + "Request #" + schedule.get(key).getRequestNum() + "\n";
+            if(unservicedRequests.isEmpty() && inTransitRequests.isEmpty()){
+                LocalDateTime lastDeliveryTime = schedule.lastKey();
+                lastDeliveryTime = lastDeliveryTime.plusSeconds((long)location.timeTo(DEPOT_LOCATION, SPEED));
+
+                if(currentTime.isAfter(lastDeliveryTime)){
+                    location = DEPOT_LOCATION;
+                }
             }
 
-            return s;
+            printSchedule();
+
+            if(schedule != null){
+                for (LocalDateTime timestamp : schedule.keySet()){
+                    Request request = schedule.get(timestamp);
+                    Integer id = request.getID();
+
+                    if (currentTime.isBefore(timestamp)){
+                        break;
+                    }
+                    else{
+                        if (unservicedRequests.containsKey(id)){
+                            pickUpRequest(request, timestamp);
+                            updateLocation(request.getPickUpLoc());
+                        }
+                        else if (inTransitRequests.containsKey(id)){
+                            dropOffRequest(request, timestamp);
+                            updateLocation(request.getDropOffLoc());
+                        }
+                    }
+                }
+            }
+        }
+
+        public void locationAtTime(LocalDateTime currentTime){
+
+            Request nextRequest = schedule.firstEntry().getValue();
+            LocalDateTime arrivalTime = schedule.firstKey();
+            LocationPoint nextLocation;
+
+            if( unscheduledRequests.containsKey(nextRequest.getID())){
+                nextLocation = nextRequest.getPickUpLoc();
+            }
+            else {
+                nextLocation = nextRequest.getDropOffLoc();
+            }
+
+            location = location.getIntermediaryPoint(nextLocation, currentTime, arrivalTime, SPEED);
 
         }
+
+        public void updateLocation(LocationPoint nextLocation){
+            location = nextLocation;
+        }
+
+        private void printUnscheduledRequests(){
+            if(!unscheduledRequests.isEmpty()) {
+                System.out.println("\nUnscheduled Requests\n" + "------------------------------" );
+                for (Request r : unscheduledRequests.values()){
+                    System.out.println("Request #" + r.getID());
+                }
+            }
+        }
+
+        private void printScheduledPickUps(){
+            if(!scheduledPickUps.isEmpty()) {
+                System.out.println("\nScheduled Pick Up Requests\n" + "------------------------------" );
+                for (Request r : scheduledPickUps.values()){
+                    System.out.println("Request #" + r.getID());
+                }
+            }
+        }
+
+        private void printScheduledDropOffs(){
+            if(!scheduledDropoffs.isEmpty()) {
+                System.out.println("\nScheduled Drop Off Requests\n" + "------------------------------" );
+                for (Request r : scheduledDropoffs.values()){
+                    System.out.println("Request #" + r.getID());
+                }
+            }
+        }
+
+        public String toString(){
+
+            String s = "\nRoute for Vehicle #" + getID() + "\n" + "------------------------------\n";
+            s += "Route Start Time: " + formatTimeStamp(routeStartTime) + "\n";
+            for (String t: transactions){
+                s += t + "\n";
+            }
+//            for (LocalDateTime key : schedule.keySet()){
+//                s += formatTimeStamp(key) + "\t" + "Request #" + schedule.get(key).getID() + "\n";
+//            }
+            return s;
+        }
+
+        public void printRoute(){
+            System.out.println(this);
+            System.out.printf("Route Duration: %.2f min\n", routeDuration);
+
+            printStatuses(requests);
+        }
+
+        public void printSchedule(){
+            if(!this.schedule.isEmpty()){
+                System.out.println("\nSCHEDULE FOR VEHICLE #" + getID() + "\n------------------------------");
+
+                for (LocalDateTime k : schedule.keySet()){
+                    System.out.printf("%8s     Request #%3d     \n", formatTimeStamp(k), schedule.get(k).getID());
+                }
+            }
+        }
+
     }
 
 }

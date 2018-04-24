@@ -19,6 +19,8 @@ class Request {
     private LocalDateTime scheduledPickUp; // pick up time scheduled by the vehicle route
     private LocalDateTime scheduledDropOff; // drop off time scheduled by the vehicle route
 
+    private String status; // Unserviced, In Transit, Delivered
+
 
     public Request(int requestID, LocalDateTime pickUpTime, double pLatitude, double pLongitude,
                    LocalDateTime dropOffTime, double dLatitude, double dLongitude){
@@ -29,6 +31,9 @@ class Request {
 
         this.dropOffTime = dropOffTime;
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+
+        this.status = "Unserviced";
+
     }
 
     public Request(LocalDateTime pickUpTime, double pLatitude, double pLongitude,
@@ -41,6 +46,8 @@ class Request {
 
         this.dropOffTime = dropOffTime;
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+
+        this.status = "Unserviced";
 
         // System.out.println(this.toString());
         // System.out.println("Request #" + this.getRequestNum() + " created.");
@@ -71,8 +78,10 @@ class Request {
         this.scheduledDropOff = scheduledDropOff;
     }
 
+    public void setStatus(String status) { this.status = status; }
+
     // Get Functions
-    public int getRequestNum() {
+    public int getID() {
         return REQUEST_ID;
     }
     public LocalDateTime getPickUpTime() {
@@ -93,6 +102,8 @@ class Request {
         return scheduledDropOff;
     }
 
+    public String getStatus() { return status; }
+
     // returns the difference between the requested and scheduled drop off times in minutes
     long calcDropOffWait(){
         if(scheduledDropOff != null){
@@ -105,7 +116,7 @@ class Request {
     }
 
     public String toString(){
-        return "Request " + getRequestNum() + ":\n" +
+        return "Request " + getID() + ":\n" +
                 "Created: " + formatTimeStamp(getPickUpTime()) + "\n" +
                 "Pick Up Location: " + getPickUpLoc().toString() + "\n" +
                 "Drop Off Time: " + formatTimeStamp(getDropOffTime()) + "\n" +
@@ -135,7 +146,7 @@ class Request {
         Request c = (Request) o;
 
         // Compare the data members and return accordingly
-        return Double.compare(getRequestNum(), c.getRequestNum()) == 0;
+        return Double.compare(getID(), c.getID()) == 0;
     }
 
 }

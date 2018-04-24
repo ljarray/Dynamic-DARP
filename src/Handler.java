@@ -9,30 +9,55 @@ import java.util.*;
 public class Handler {
     // Handles incoming requests and manages the optimization algorithm
 
+    private Defaults defaults;
+    private Data data;
+
     private LocalDateTime currentTime;
     private ArrayList<Vehicle> vehicles = new ArrayList<>();
-    private HashMap<LocalDateTime, Request> requestSchedule = new HashMap<>();
-    private ArrayList<Request> requests = new ArrayList<>();
-    private Defaults defaults;
+    private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
+    private HashMap<Integer, Request> requests = new HashMap<>();
 
     public Handler(Data data, Defaults defaults){
 
         this.defaults = defaults;
+        this.data = data;
         this.requestSchedule = data.getRequestSchedule();
         this.requests = data.getRequests();
 
+    }
+
+    public void runHandler(){
+
+
         System.out.println("\nRequests List\n" + "------------------------------");
 
-        for (Request r : requests){
-            System.out.printf("Request #%03d     %s     %26s     %26s\n", r.getRequestNum(),
-                    formatTimeStamp(r.getPickUpTime()), r.getPickUpLoc().toString(), r.getDropOffLoc().toString());
+        for (LocalDateTime k : requestSchedule.keySet()){
+            System.out.printf("Request #%03d     %s     %26s     %26s\n", requestSchedule.get(k).getID(),
+                    formatTimeStamp(requestSchedule.get(k).getPickUpTime()),
+                    requestSchedule.get(k).getPickUpLoc().toString(),
+                    requestSchedule.get(k).getDropOffLoc().toString());
         }
 
-        currentTime = setStartTime(requests);
+        currentTime = setStartTime(requestSchedule);
+        LocalDateTime endTime = requests.get(data.getRequestIdList().get(9)).getDropOffTime().plusMinutes(30);
 
-        for (int i = 0; i < 5; i++){
-            assignRequestToAVehicle(requests.get(i));
+        int i = 0;
+        Request currentRequest = requests.get(data.getRequestIdList().get(i));
+
+        while (currentTime.isBefore(endTime)){
+
+            if (currentTime.isAfter(currentRequest.getPickUpTime()) && i < 10){
+                assignRequestToAVehicle(currentRequest);
+
+                i++;
+                currentRequest = requests.get(data.getRequestIdList().get(i));
+            }
+
+            updateVehicles(vehicles);
+            currentTime = currentTime.plusMinutes(1);
         }
+
+        printSummary();
 
     }
 
@@ -43,8 +68,10 @@ public class Handler {
             vehicles.add(v);
             v.addRequest(request);
 
-            System.out.println("\nRequest #" + request.getRequestNum()
-                    + " added to vehicle #" + v.getVehicleID() + ".");
+            System.out.println("Request #" + request.getID()
+                    + " added to vehicle #" + v.getID() + ".");
+
+            System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
 
             setRouteForVehicle(v);
 
@@ -58,7 +85,7 @@ public class Handler {
 
             for ( Vehicle v : vehicles){
                 // if seats are available
-                if (v.getRequests().size() < v.getMaxSeats()){
+                if (v.getFilledSeats() < v.getMaxSeats()){
                     routeCosts.put(v.route.getInsertionCost(request), v);
                 }
             }
@@ -70,10 +97,10 @@ public class Handler {
                 vehicles.add(v);
                 v.addRequest(request);
 
-                System.out.println("Request #" + request.getRequestNum()
-                        + " added to Vehicle #" + v.getVehicleID() + ".");
+                System.out.println("Request #" + request.getID()
+                        + " added to Vehicle #" + v.getID() + ".");
 
-                System.out.println("Setting route for Vehicle #" + v.getVehicleID() + "...");
+                System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
 
                 setRouteForVehicle(v);
 
@@ -82,12 +109,12 @@ public class Handler {
 
                 Vehicle v = routeCosts.firstEntry().getValue();
 
-                System.out.println("Request #" + request.getRequestNum()
-                        + " added to Vehicle #" + v.getVehicleID() + ".");
+                System.out.println("Request #" + request.getID()
+                        + " added to Vehicle #" + v.getID() + ".");
 
                 v.addRequest(request);
 
-                System.out.println("Setting route for Vehicle #" + v.getVehicleID() + "...");
+                System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
 
                 setRouteForVehicle(v);
             }
@@ -104,6 +131,13 @@ public class Handler {
         }
     }
 
+    private void updateVehicles(ArrayList<Vehicle> vehicles){
+        for (Vehicle vehicle : vehicles){
+            vehicle.route.updateRequests(currentTime);
+            // vehicle.route.updateLocation(currentTime);
+        }
+    }
+
     private void runGeneticAlgorithm(){
 
         // TODO: 4/12/18 genetic algorithm
@@ -112,30 +146,44 @@ public class Handler {
 
     }
 
-    private LocalDateTime setStartTime(ArrayList<Request> requests){
-        // Defaults the current system time to the earliest pick up time for all requests
-        return requests.get(0).getPickUpTime();
+    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
+
+        return schedule.firstKey();
+
     }
 
-    private LocalDateTime setStartTime(HashMap<LocalDateTime, Request> schedule){
+//    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
+//
+//        LocalDateTime currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
+//
+//        Set<LocalDateTime> timeSet = schedule.keySet();
+//        Request firstRequest = this.requests.get(0);
+//
+//        // Defaults the current system time to the earliest pick up time for all requests minus time to get there
+//        for (LocalDateTime time : timeSet){
+//            if(time.isBefore(currentTime)){
+//                currentTime = time;
+//                firstRequest = schedule.get(time);
+//            }
+//        }
+//
+//        double timeToFirstRequest =
+//                this.defaults.getDepotLocation().timeTo(firstRequest.getPickUpLoc(), defaults.getVehicleDefaultSpeed());
+//
+//        return currentTime.minusSeconds((long)timeToFirstRequest);
+//
+//    }
 
-        LocalDateTime currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
+    private void printSummary(){
 
-        Set<LocalDateTime> timeSet = schedule.keySet();
-        Request firstRequest = this.requests.get(0);
+        System.out.println("\n==============================\n\n" + "Current Time:\t"
+                + formatTimeStamp(currentTime) + "\n\n==============================" );
 
-        // Defaults the current system time to the earliest pick up time for all requests minus time to get there
-        for (LocalDateTime time : timeSet){
-            if(time.isBefore(currentTime)){
-                currentTime = time;
-                firstRequest = schedule.get(time);
-            }
+        for (Vehicle v : vehicles){
+            System.out.println("\n==============================\n\n"
+                    + "Vehicle #" + v.getID() + "\n\n==============================" );
+            v.route.printRoute();
         }
-
-        double timeToFirstRequest =
-                this.defaults.getDepotLocation().timeTo(firstRequest.getPickUpLoc(), defaults.getVehicleDefaultSpeed());
-
-        return currentTime.minusSeconds((long)timeToFirstRequest);
 
     }
 

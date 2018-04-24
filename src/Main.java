@@ -3,6 +3,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,8 @@ public class Main {
         Data data = new Data(file, defaults);
 
         Handler eventHandler = new Handler(data, defaults);
+
+        eventHandler.runHandler();
 
     }
 }
@@ -58,8 +61,8 @@ class Defaults {
         this.DEPOT_LOCATION = new LocationPoint("depot", 41.0785371, 29.0108798);
         this.TIME_TO_DROPOFF = 60; // in min
         this.MAX_ROUTE_LENGTH = 480; // in min
-        this.VEHICLE_DEFAULT_SPEED = 0.83333333333; // km per minute, default is 50 kmh
-        this.MAX_VEHICLES = 10;
+        this.VEHICLE_DEFAULT_SPEED = 0.43333333333; // km per minute, default is 50 kmh .8333333
+        this.MAX_VEHICLES = 3; // 10
         this.MAX_SEATS = 6;
 
         // weights are based on the customer choice defaults
@@ -85,8 +88,9 @@ class Defaults {
 
 class Data {
 
-    private HashMap<LocalDateTime, Request> requestSchedule = new HashMap<>();
-    private ArrayList<Request> requests = new ArrayList<>();
+    private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
+    private HashMap<Integer, Request> requests = new HashMap<>();
+    private ArrayList<Integer> requestIdList = new ArrayList<>();
 
     Data(String fileName, Defaults defaults){
         readProblem(fileName, defaults);
@@ -131,14 +135,21 @@ class Data {
 
                     if(locations.size() == 4){
 
-                        Request request = new Request(pickupTime, locations.get(0), locations.get(1),
+                        int requestID = (int)(Math.random() * 899 + 100);
+
+                        while (requests.containsKey(requestID)){
+                            requestID = (int)(Math.random() * 899 + 100); // ensures no duplicates
+                        }
+
+                        Request request = new Request(requestID, pickupTime, locations.get(0), locations.get(1),
                                 dropoffTime, locations.get(2), locations.get(3));
 
                         // System.out.println(request.getPickUpLoc().toString());
                         // System.out.println(request.getDropOffLoc().toString());
 
                         this.requestSchedule.put(pickupTime, request);
-                        this.requests.add(request);
+                        this.requests.put(request.getID(), request);
+                        this.requestIdList.add(requestID);
 
                     } else {
                         System.out.println("Error: there were not the right number of coordinates in data line: \n" + line);
@@ -164,8 +175,9 @@ class Data {
         return LocalDate.now().atTime(Integer.valueOf(time[0]), Integer.valueOf(time[1]), Integer.valueOf(time[2]));
     }
 
-    public HashMap<LocalDateTime, Request> getRequestSchedule() {
+    public TreeMap<LocalDateTime, Request> getRequestSchedule() {
         return requestSchedule;
     }
-    public ArrayList<Request> getRequests(){ return this.requests; }
+    public HashMap<Integer, Request> getRequests(){ return this.requests; }
+    public ArrayList<Integer> getRequestIdList(){ return requestIdList; }
 }
