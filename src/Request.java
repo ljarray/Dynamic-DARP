@@ -19,7 +19,7 @@ class Request {
     private LocalDateTime scheduledPickUp; // pick up time scheduled by the vehicle route
     private LocalDateTime scheduledDropOff; // drop off time scheduled by the vehicle route
 
-    private String status; // Unserviced, In Transit, Delivered
+    private String status; // Request Created, Unserviced, In Transit, Delivered
 
 
     public Request(int requestID, LocalDateTime pickUpTime, double pLatitude, double pLongitude,
@@ -32,7 +32,7 @@ class Request {
         this.dropOffTime = dropOffTime;
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
 
-        this.status = "Unserviced";
+        this.status = "Request Created";
 
     }
 
@@ -47,7 +47,7 @@ class Request {
         this.dropOffTime = dropOffTime;
         this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
 
-        this.status = "Unserviced";
+        this.status = "Request Created";
 
         // System.out.println(this.toString());
         // System.out.println("Request #" + this.getRequestNum() + " created.");

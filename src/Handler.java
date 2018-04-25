@@ -31,34 +31,58 @@ public class Handler {
 
         System.out.println("\nRequests List\n" + "------------------------------");
 
-        for (LocalDateTime k : requestSchedule.keySet()){
-            System.out.printf("Request #%03d     %s     %26s     %26s\n", requestSchedule.get(k).getID(),
-                    formatTimeStamp(requestSchedule.get(k).getPickUpTime()),
-                    requestSchedule.get(k).getPickUpLoc().toString(),
-                    requestSchedule.get(k).getDropOffLoc().toString());
-        }
+        printRequests();
+
+        // TODO: 4/25/18 CODE NEW REQUEST IF STATEMENT AS THE MAIN LOGIC SWITCH
 
         currentTime = setStartTime(requestSchedule);
         LocalDateTime endTime = requests.get(data.getRequestIdList().get(9)).getDropOffTime().plusMinutes(30);
 
-        int i = 0;
-        Request currentRequest = requests.get(data.getRequestIdList().get(i));
-
         while (currentTime.isBefore(endTime)){
 
-            if (currentTime.isAfter(currentRequest.getPickUpTime()) && i < 10){
-                assignRequestToAVehicle(currentRequest);
+            updateVehicles(currentTime);
 
-                i++;
-                currentRequest = requests.get(data.getRequestIdList().get(i));
+            if (newRequestExists(currentTime)){
+
+                assignRequestToAVehicle(getNextRequest(currentTime));
+
+            }
+            else {
+
+                runGeneticAlgorithm();
+
             }
 
-            updateVehicles(vehicles);
             currentTime = currentTime.plusMinutes(1);
         }
 
         printSummary();
 
+    }
+
+    private boolean newRequestExists(LocalDateTime now){
+
+        if (requestSchedule.higherKey(now) != null){
+
+            Request nextRequest = requestSchedule.get(requestSchedule.higherKey(now));
+
+            if (nextRequest.getStatus().equals("Request Created")){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private Request getNextRequest(LocalDateTime now){
+        if (requestSchedule.higherKey(now) != null) {
+            return requestSchedule.get(requestSchedule.higherKey(now));
+        }
+        System.out.println("Error: no new request exists");
+        return null;
     }
 
     private void assignRequestToAVehicle(Request request){
@@ -131,10 +155,10 @@ public class Handler {
         }
     }
 
-    private void updateVehicles(ArrayList<Vehicle> vehicles){
+    private void updateVehicles(LocalDateTime now){
         for (Vehicle vehicle : vehicles){
-            vehicle.route.updateRequests(currentTime);
-            // vehicle.route.updateLocation(currentTime);
+            vehicle.updateRequests(now);
+            vehicle.updateLocationAtTime(now);
         }
     }
 
@@ -173,6 +197,15 @@ public class Handler {
 //        return currentTime.minusSeconds((long)timeToFirstRequest);
 //
 //    }
+
+    private void printRequests(){
+        for (LocalDateTime k : requestSchedule.keySet()){
+            System.out.printf("Request #%03d     %s     %26s     %26s\n", requestSchedule.get(k).getID(),
+                    formatTimeStamp(requestSchedule.get(k).getPickUpTime()),
+                    requestSchedule.get(k).getPickUpLoc().toString(),
+                    requestSchedule.get(k).getDropOffLoc().toString());
+        }
+    }
 
     private void printSummary(){
 
