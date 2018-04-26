@@ -21,21 +21,17 @@ public class Handler {
 
         this.defaults = defaults;
         this.data = data;
-        this.requestSchedule = data.getRequestSchedule();
         this.requests = data.getRequests();
 
     }
 
     public void runHandler(){
 
-
-        System.out.println("\nRequests List\n" + "------------------------------");
-
         printRequests();
 
         // TODO: 4/25/18 CODE NEW REQUEST IF STATEMENT AS THE MAIN LOGIC SWITCH
 
-        currentTime = setStartTime(requestSchedule);
+        currentTime = setStartTime();
         LocalDateTime endTime = requests.get(data.getRequestIdList().get(9)).getDropOffTime().plusMinutes(30);
 
         while (currentTime.isBefore(endTime)){
@@ -170,35 +166,23 @@ public class Handler {
 
     }
 
-    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
+    private LocalDateTime setStartTime(){
 
-        return schedule.firstKey();
+        LocalDateTime startTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
+
+        for (Integer id : requests.keySet()){
+            LocalDateTime time = requests.get(id).getPickUpTime();
+            if(time.isBefore(startTime)){
+                startTime = time;
+            }
+        }
+
+        return startTime;
 
     }
 
-//    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
-//
-//        LocalDateTime currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
-//
-//        Set<LocalDateTime> timeSet = schedule.keySet();
-//        Request firstRequest = this.requests.get(0);
-//
-//        // Defaults the current system time to the earliest pick up time for all requests minus time to get there
-//        for (LocalDateTime time : timeSet){
-//            if(time.isBefore(currentTime)){
-//                currentTime = time;
-//                firstRequest = schedule.get(time);
-//            }
-//        }
-//
-//        double timeToFirstRequest =
-//                this.defaults.getDepotLocation().timeTo(firstRequest.getPickUpLoc(), defaults.getVehicleDefaultSpeed());
-//
-//        return currentTime.minusSeconds((long)timeToFirstRequest);
-//
-//    }
-
     private void printRequests(){
+        System.out.println("\nRequests List\n" + "------------------------------");
         for (LocalDateTime k : requestSchedule.keySet()){
             System.out.printf("Request #%03d     %s     %26s     %26s\n", requestSchedule.get(k).getID(),
                     formatTimeStamp(requestSchedule.get(k).getPickUpTime()),

@@ -508,6 +508,7 @@ class Vehicle {
 
                     // find nearest neighbor
                     TreeMap<Double, Request> separationTree = getNearestFour(location, time, requestsToPickUp, requestsToDropOff);
+                    // TODO: 4/25/18 null pointer exception 
                     request = separationTree.firstEntry().getValue();
 
                     if (requestsToPickUp.containsKey(request.getID())){

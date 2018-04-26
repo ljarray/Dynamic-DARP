@@ -88,7 +88,6 @@ class Defaults {
 
 class Data {
 
-    private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
     private HashMap<Integer, Request> requests = new HashMap<>();
     private ArrayList<Integer> requestIdList = new ArrayList<>();
 
@@ -144,10 +143,6 @@ class Data {
                         Request request = new Request(requestID, pickupTime, locations.get(0), locations.get(1),
                                 dropoffTime, locations.get(2), locations.get(3));
 
-                        // System.out.println(request.getPickUpLoc().toString());
-                        // System.out.println(request.getDropOffLoc().toString());
-
-                        this.requestSchedule.put(pickupTime, request);
                         this.requests.put(request.getID(), request);
                         this.requestIdList.add(requestID);
 
@@ -175,9 +170,6 @@ class Data {
         return LocalDate.now().atTime(Integer.valueOf(time[0]), Integer.valueOf(time[1]), Integer.valueOf(time[2]));
     }
 
-    public TreeMap<LocalDateTime, Request> getRequestSchedule() {
-        return requestSchedule;
-    }
     public HashMap<Integer, Request> getRequests(){ return this.requests; }
     public ArrayList<Integer> getRequestIdList(){ return requestIdList; }
 }
