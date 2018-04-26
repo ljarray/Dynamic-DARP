@@ -7,27 +7,21 @@ import java.time.temporal.ChronoUnit;
  * https://introcs.cs.princeton.edu/java/44st/Location.java
  */
 
-public class LocationPoint {
-    private String name;
+class LocationPoint {
     private double longitude;
     private double latitude;
 
     // create and initialize a point with given name and
     // (latitude, longitude) specified in degrees
-    public LocationPoint(String name, double latitude, double longitude) {
-        this.name = name;
-        this.latitude  = latitude;
-        this.longitude = longitude;
-    }
 
-    public LocationPoint(double latitude, double longitude) {
+    LocationPoint(double latitude, double longitude) {
         this.latitude  = latitude;
         this.longitude = longitude;
     }
 
     // return distance between this location and that location
     // measured in statute miles
-    public double distanceTo(LocationPoint that) {
+    double distanceTo(LocationPoint that) {
         // double STATUTE_MILES_PER_NAUTICAL_MILE = 1.15077945;
         double KM_PER_NAUTICAL_MILE = 1.85200;
         double lat1 = Math.toRadians(this.latitude);
@@ -45,13 +39,13 @@ public class LocationPoint {
         return km;
     }
 
-    public double timeTo(LocationPoint that, double speed){ // Returns timeTo in Seconds
+    double timeTo(LocationPoint that, double speed){ // Returns timeTo in Seconds
         // returns travel time in seconds
         double distance =  this.distanceTo(that);
         return distance * 60 / speed; // speed should be distance per min
     }
 
-    public LocationPoint getIntermediaryPoint(LocationPoint that, LocalDateTime now, LocalDateTime arrivalTime, double speed){
+    LocationPoint getIntermediaryPoint(LocationPoint that, LocalDateTime now, LocalDateTime arrivalTime, double speed){
         double lat1 = Math.toRadians(this.latitude);
         double lon1 = Math.toRadians(this.longitude);
         double lat2 = Math.toRadians(that.latitude);

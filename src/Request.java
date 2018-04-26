@@ -22,30 +22,30 @@ class Request {
     private String status; // Request Created, Unserviced, In Transit, Delivered
 
 
-    public Request(int requestID, LocalDateTime pickUpTime, double pLatitude, double pLongitude,
+    Request(int requestID, LocalDateTime pickUpTime, double pLatitude, double pLongitude,
                    LocalDateTime dropOffTime, double dLatitude, double dLongitude){
 
         this.REQUEST_ID = requestID;
         this.pickUpTime = pickUpTime;
-        this.pickUpLoc = new LocationPoint("Request " + REQUEST_ID + " pick up", pLatitude, pLongitude);
+        this.pickUpLoc = new LocationPoint(pLatitude, pLongitude);
 
         this.dropOffTime = dropOffTime;
-        this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+        this.dropOffLoc = new LocationPoint(dLatitude, dLongitude);
 
         this.status = "Request Created";
 
     }
 
-    public Request(LocalDateTime pickUpTime, double pLatitude, double pLongitude,
+    Request(LocalDateTime pickUpTime, double pLatitude, double pLongitude,
                    LocalDateTime dropOffTime, double dLatitude, double dLongitude){
 
         // todo implement better method for request IDs that cannot cause duplicates
         this.REQUEST_ID = (int)(Math.random() * 999);
         this.pickUpTime = pickUpTime;
-        this.pickUpLoc = new LocationPoint("Request " + REQUEST_ID + " pick up", pLatitude, pLongitude);
+        this.pickUpLoc = new LocationPoint(pLatitude, pLongitude);
 
         this.dropOffTime = dropOffTime;
-        this.dropOffLoc = new LocationPoint("Request " + REQUEST_ID + " drop off", dLatitude, dLongitude);
+        this.dropOffLoc = new LocationPoint(dLatitude, dLongitude);
 
         this.status = "Request Created";
 
@@ -55,54 +55,54 @@ class Request {
     }
 
     // Set Functions
-    public void setRequestNum(int requestNum){
+    void setRequestNum(int requestNum){
         this.REQUEST_ID = requestNum;
     }
-    public void setPickUpTime(LocalDateTime pickUpTime) {
+    void setPickUpTime(LocalDateTime pickUpTime) {
         this.pickUpTime = pickUpTime;
     }
-    public void setDropOffTime(LocalDateTime dropOffTime) {
+    void setDropOffTime(LocalDateTime dropOffTime) {
         this.dropOffTime = dropOffTime;
     }
-    public void setPickUpLoc(LocationPoint pickUpLoc) {
+    void setPickUpLoc(LocationPoint pickUpLoc) {
         this.pickUpLoc = pickUpLoc;
     }
-    public void setDropOffLoc(LocationPoint dropOffLoc) {
+    void setDropOffLoc(LocationPoint dropOffLoc) {
         this.dropOffLoc = dropOffLoc;
     }
 
-    public void setScheduledPickUp(LocalDateTime scheduledPickUp) {
+    void setScheduledPickUp(LocalDateTime scheduledPickUp) {
         this.scheduledPickUp = scheduledPickUp;
     }
-    public void setScheduledDropOff(LocalDateTime scheduledDropOff) {
+    void setScheduledDropOff(LocalDateTime scheduledDropOff) {
         this.scheduledDropOff = scheduledDropOff;
     }
 
-    public void setStatus(String status) { this.status = status; }
+    void setStatus(String status) { this.status = status; }
 
     // Get Functions
-    public int getID() {
+    int getID() {
         return REQUEST_ID;
     }
-    public LocalDateTime getPickUpTime() {
+    LocalDateTime getPickUpTime() {
         return pickUpTime;
     }
-    public LocalDateTime getDropOffTime(){
+    LocalDateTime getDropOffTime(){
         return dropOffTime;
     }
-    public LocationPoint getPickUpLoc(){
+    LocationPoint getPickUpLoc(){
         return pickUpLoc;
     }
-    public LocationPoint getDropOffLoc(){ return dropOffLoc; }
+    LocationPoint getDropOffLoc(){ return dropOffLoc; }
 
-    public LocalDateTime getScheduledPickUp(){
+    LocalDateTime getScheduledPickUp(){
         return scheduledPickUp;
     }
-    public LocalDateTime getScheduledDropOff(){
+    LocalDateTime getScheduledDropOff(){
         return scheduledDropOff;
     }
 
-    public String getStatus() { return status; }
+    String getStatus() { return status; }
 
     // returns the difference between the requested and scheduled drop off times in minutes
     long calcDropOffWait(){

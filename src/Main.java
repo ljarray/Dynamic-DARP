@@ -58,7 +58,7 @@ class Defaults {
 
     Defaults(){
         // default values when not otherwise defined
-        this.DEPOT_LOCATION = new LocationPoint("depot", 41.0785371, 29.0108798);
+        this.DEPOT_LOCATION = new LocationPoint(41.0785371, 29.0108798);
         this.TIME_TO_DROPOFF = 60; // in min
         this.MAX_ROUTE_LENGTH = 480; // in min
         this.VEHICLE_DEFAULT_SPEED = 0.43333333333; // km per minute, default is 50 kmh .8333333
@@ -73,16 +73,16 @@ class Defaults {
     }
 
     // get methods. There are no set methods, since defaults should not change except through initialization
-    public LocationPoint getDepotLocation(){ return DEPOT_LOCATION; }
-    public int getTimeToDropOff() { return TIME_TO_DROPOFF; }
-    public int getMaxRouteLength() { return MAX_ROUTE_LENGTH; }
-    public double getVehicleDefaultSpeed() { return VEHICLE_DEFAULT_SPEED; }
-    public int getMaxVehicles() { return MAX_VEHICLES; }
-    public int getMaxSeats() { return MAX_SEATS; }
-    public int getDriveTimeWeight() { return DRIVE_TIME_WEIGHT; }
-    public int getRouteDurationWeight() { return ROUTE_DURATION_WEIGHT; }
-    public int getPackageRideTimeViolationWeight() { return PACKAGE_RIDE_TIME_VIOLATION_WEIGHT; }
-    public int getRouteDurationViolationWeight() { return ROUTE_DURATION_VIOLATION_WEIGHT; }
+    LocationPoint getDepotLocation(){ return DEPOT_LOCATION; }
+    int getTimeToDropOff() { return TIME_TO_DROPOFF; }
+    int getMaxRouteLength() { return MAX_ROUTE_LENGTH; }
+    double getVehicleDefaultSpeed() { return VEHICLE_DEFAULT_SPEED; }
+    int getMaxVehicles() { return MAX_VEHICLES; }
+    int getMaxSeats() { return MAX_SEATS; }
+    int getDriveTimeWeight() { return DRIVE_TIME_WEIGHT; }
+    int getRouteDurationWeight() { return ROUTE_DURATION_WEIGHT; }
+    int getPackageRideTimeViolationWeight() { return PACKAGE_RIDE_TIME_VIOLATION_WEIGHT; }
+    int getRouteDurationViolationWeight() { return ROUTE_DURATION_VIOLATION_WEIGHT; }
 
 }
 
@@ -144,8 +144,7 @@ class Data {
                         Request request = new Request(requestID, pickupTime, locations.get(0), locations.get(1),
                                 dropoffTime, locations.get(2), locations.get(3));
 
-                        // System.out.println(request.getPickUpLoc().toString());
-                        // System.out.println(request.getDropOffLoc().toString());
+                        // TODO: 4/25/18 Handle more than 1 request with same time stamp. They are deleted atm.
 
                         this.requestSchedule.put(pickupTime, request);
                         this.requests.put(request.getID(), request);
@@ -175,9 +174,9 @@ class Data {
         return LocalDate.now().atTime(Integer.valueOf(time[0]), Integer.valueOf(time[1]), Integer.valueOf(time[2]));
     }
 
-    public TreeMap<LocalDateTime, Request> getRequestSchedule() {
+    TreeMap<LocalDateTime, Request> getRequestSchedule() {
         return requestSchedule;
     }
-    public HashMap<Integer, Request> getRequests(){ return this.requests; }
-    public ArrayList<Integer> getRequestIdList(){ return requestIdList; }
+    HashMap<Integer, Request> getRequests(){ return this.requests; }
+    ArrayList<Integer> getRequestIdList(){ return requestIdList; }
 }

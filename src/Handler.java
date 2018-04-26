@@ -6,7 +6,7 @@ import java.util.*;
  * Created by laura-jane on 2/8/18.
  */
 
-public class Handler {
+class Handler {
     // Handles incoming requests and manages the optimization algorithm
 
     private Defaults defaults;
@@ -17,7 +17,7 @@ public class Handler {
     private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
     private HashMap<Integer, Request> requests = new HashMap<>();
 
-    public Handler(Data data, Defaults defaults){
+    Handler(Data data, Defaults defaults){
 
         this.defaults = defaults;
         this.data = data;
@@ -26,14 +26,12 @@ public class Handler {
 
     }
 
-    public void runHandler(){
+    void runHandler(){
 
 
         System.out.println("\nRequests List\n" + "------------------------------");
 
         printRequests();
-
-        // TODO: 4/25/18 CODE NEW REQUEST IF STATEMENT AS THE MAIN LOGIC SWITCH
 
         currentTime = setStartTime(requestSchedule);
         LocalDateTime endTime = requests.get(data.getRequestIdList().get(9)).getDropOffTime().plusMinutes(30);
@@ -66,18 +64,16 @@ public class Handler {
 
             Request nextRequest = requestSchedule.get(requestSchedule.higherKey(now));
 
-            if (nextRequest.getStatus().equals("Request Created")){
-                return true;
-            }
-            else{
-                return false;
-            }
+            return nextRequest.getStatus().equals("Request Created");
         }
 
         return false;
     }
 
     private Request getNextRequest(LocalDateTime now){
+
+        // TODO: 4/25/18 Handle more than 1 request with same time stamp. They are deleted atm.
+        
         if (requestSchedule.higherKey(now) != null) {
             return requestSchedule.get(requestSchedule.higherKey(now));
         }
@@ -149,11 +145,11 @@ public class Handler {
         vehicle.route.setRoute(currentTime);
     }
 
-    private void setRoutes(ArrayList<Vehicle> vehicles){
-        for (Vehicle vehicle : vehicles){
-            vehicle.route.setRoute(currentTime);
-        }
-    }
+//    private void setRoutes(ArrayList<Vehicle> vehicles){
+//        for (Vehicle vehicle : vehicles){
+//            vehicle.route.setRoute(currentTime);
+//        }
+//    }
 
     private void updateVehicles(LocalDateTime now){
         for (Vehicle vehicle : vehicles){
@@ -175,28 +171,6 @@ public class Handler {
         return schedule.firstKey();
 
     }
-
-//    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
-//
-//        LocalDateTime currentTime = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
-//
-//        Set<LocalDateTime> timeSet = schedule.keySet();
-//        Request firstRequest = this.requests.get(0);
-//
-//        // Defaults the current system time to the earliest pick up time for all requests minus time to get there
-//        for (LocalDateTime time : timeSet){
-//            if(time.isBefore(currentTime)){
-//                currentTime = time;
-//                firstRequest = schedule.get(time);
-//            }
-//        }
-//
-//        double timeToFirstRequest =
-//                this.defaults.getDepotLocation().timeTo(firstRequest.getPickUpLoc(), defaults.getVehicleDefaultSpeed());
-//
-//        return currentTime.minusSeconds((long)timeToFirstRequest);
-//
-//    }
 
     private void printRequests(){
         for (LocalDateTime k : requestSchedule.keySet()){
@@ -220,7 +194,7 @@ public class Handler {
 
     }
 
-    public String formatTimeStamp(LocalDateTime time){
+    private String formatTimeStamp(LocalDateTime time){
         return time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
