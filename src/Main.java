@@ -88,7 +88,7 @@ class Defaults {
 
 class Data {
 
-    private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
+    private TreeMap<LocalDateTime, HashMap<Integer, Request>> requestSchedule = new TreeMap<>();
     private HashMap<Integer, Request> requests = new HashMap<>();
     private ArrayList<Integer> requestIdList = new ArrayList<>();
 
@@ -144,10 +144,16 @@ class Data {
                         Request request = new Request(requestID, pickupTime, locations.get(0), locations.get(1),
                                 dropoffTime, locations.get(2), locations.get(3));
 
-                        // TODO: 4/25/18 Handle more than 1 request with same time stamp. They are deleted atm.
+                        HashMap<Integer, Request> requestHashMap = new HashMap<>();
 
-                        this.requestSchedule.put(pickupTime, request);
-                        this.requests.put(request.getID(), request);
+                        if (this.requestSchedule.containsKey(pickupTime)){
+                            requestHashMap = this.requestSchedule.get(pickupTime);
+                        }
+
+                        requestHashMap.put(requestID, request);
+
+                        this.requestSchedule.put(pickupTime, requestHashMap);
+                        this.requests.put(requestID, request);
                         this.requestIdList.add(requestID);
 
                     } else {
@@ -174,7 +180,7 @@ class Data {
         return LocalDate.now().atTime(Integer.valueOf(time[0]), Integer.valueOf(time[1]), Integer.valueOf(time[2]));
     }
 
-    TreeMap<LocalDateTime, Request> getRequestSchedule() {
+    TreeMap<LocalDateTime, HashMap<Integer, Request>> getRequestSchedule() {
         return requestSchedule;
     }
     HashMap<Integer, Request> getRequests(){ return this.requests; }

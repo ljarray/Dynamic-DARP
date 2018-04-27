@@ -14,7 +14,7 @@ class Handler {
 
     private LocalDateTime currentTime;
     private ArrayList<Vehicle> vehicles = new ArrayList<>();
-    private TreeMap<LocalDateTime, Request> requestSchedule = new TreeMap<>();
+    private TreeMap<LocalDateTime, HashMap<Integer, Request>> requestSchedule = new TreeMap<>();
     private HashMap<Integer, Request> requests = new HashMap<>();
 
     Handler(Data data, Defaults defaults){
@@ -41,9 +41,7 @@ class Handler {
             updateVehicles(currentTime);
 
             if (newRequestExists(currentTime)){
-
-                assignRequestToAVehicle(getNextRequest(currentTime));
-
+                getNextRequests(currentTime).values().forEach(this::assignRequestToAVehicle);
             }
             else {
 
@@ -59,25 +57,24 @@ class Handler {
     }
 
     private boolean newRequestExists(LocalDateTime now){
-
         if (requestSchedule.higherKey(now) != null){
-
-            Request nextRequest = requestSchedule.get(requestSchedule.higherKey(now));
-
-            return nextRequest.getStatus().equals("Request Created");
+            for (Request r :requestSchedule.get(requestSchedule.higherKey(now)).values()){
+                if (r.getStatus().equals("Request Created")) { return true; }
+            }
         }
 
         return false;
     }
 
-    private Request getNextRequest(LocalDateTime now){
-
-        // TODO: 4/25/18 Handle more than 1 request with same time stamp. They are deleted atm.
-        
-        if (requestSchedule.higherKey(now) != null) {
-            return requestSchedule.get(requestSchedule.higherKey(now));
+    private HashMap<Integer, Request> getNextRequests(LocalDateTime now){
+        if (requestSchedule.higherKey(now) != null){
+            HashMap<Integer, Request> requestMap = new HashMap<>();
+            requestSchedule.get(requestSchedule.higherKey(now)).values().stream().filter(r -> r.getStatus().equals("Request Created")).forEach(r -> {
+                requestMap.put(r.getID(), r);
+            });
+            if (!requestMap.isEmpty()) { return requestMap; }
         }
-        System.out.println("Error: no new request exists");
+        System.out.println("Error: no new requests exist");
         return null;
     }
 
@@ -166,7 +163,7 @@ class Handler {
 
     }
 
-    private LocalDateTime setStartTime(TreeMap<LocalDateTime, Request> schedule){
+    private LocalDateTime setStartTime(TreeMap<LocalDateTime, HashMap<Integer, Request>> schedule){
 
         return schedule.firstKey();
 
@@ -174,10 +171,12 @@ class Handler {
 
     private void printRequests(){
         for (LocalDateTime k : requestSchedule.keySet()){
-            System.out.printf("Request #%03d     %s     %26s     %26s\n", requestSchedule.get(k).getID(),
-                    formatTimeStamp(requestSchedule.get(k).getPickUpTime()),
-                    requestSchedule.get(k).getPickUpLoc().toString(),
-                    requestSchedule.get(k).getDropOffLoc().toString());
+            for (Integer id : requestSchedule.get(k).keySet()){
+                System.out.printf("Request #%03d     %s     %26s     %26s\n", id,
+                        formatTimeStamp(requests.get(id).getPickUpTime()),
+                        requests.get(id).getPickUpLoc().toString(),
+                        requests.get(id).getDropOffLoc().toString());
+            }
         }
     }
 
