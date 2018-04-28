@@ -14,8 +14,9 @@ class Handler {
 
     private LocalDateTime currentTime;
     private ArrayList<Vehicle> vehicles = new ArrayList<>();
-    private TreeMap<LocalDateTime, HashMap<Integer, Request>> requestSchedule = new TreeMap<>();
+    private TreeMap<LocalDateTime, ArrayList<Request>> requestSchedule = new TreeMap<>();
     private HashMap<Integer, Request> requests = new HashMap<>();
+    private int timeSlice = 1;
 
     Handler(Data data, Defaults defaults){
 
@@ -43,13 +44,9 @@ class Handler {
             if (newRequestExists(currentTime)){
                 getNextRequests(currentTime).values().forEach(this::assignRequestToAVehicle);
             }
-            else {
+            else runGeneticAlgorithm();
 
-                runGeneticAlgorithm();
-
-            }
-
-            currentTime = currentTime.plusMinutes(1);
+            currentTime = currentTime.plusMinutes(timeSlice);
         }
 
         printSummary();
@@ -57,22 +54,33 @@ class Handler {
     }
 
     private boolean newRequestExists(LocalDateTime now){
-        if (requestSchedule.higherKey(now) != null){
-            for (Request r :requestSchedule.get(requestSchedule.higherKey(now)).values()){
-                if (r.getStatus().equals("Request Created")) { return true; }
+        LocalDateTime then = now.minusMinutes(timeSlice);
+
+        if (!requestSchedule.subMap(then, now).isEmpty()){
+            for(LocalDateTime k : requestSchedule.subMap(then, now).keySet()){
+                for (Request r :requestSchedule.get(k)){
+                    if (r.getStatus().equals("Request Created")){
+                        return true;
+                    }
+                }
             }
         }
-
         return false;
     }
 
     private HashMap<Integer, Request> getNextRequests(LocalDateTime now){
-        if (requestSchedule.higherKey(now) != null){
-            HashMap<Integer, Request> requestMap = new HashMap<>();
-            requestSchedule.get(requestSchedule.higherKey(now)).values().stream().filter(r -> r.getStatus().equals("Request Created")).forEach(r -> {
-                requestMap.put(r.getID(), r);
-            });
-            if (!requestMap.isEmpty()) { return requestMap; }
+        LocalDateTime then = now.minusMinutes(timeSlice);
+        HashMap<Integer, Request> nextRequests = new HashMap<>();
+
+        if (!requestSchedule.subMap(then, now).isEmpty()){
+            for(LocalDateTime k : requestSchedule.subMap(then, now).keySet()){
+                for (Request r : requestSchedule.get(k)){
+                    if (r.getStatus().equals("Request Created")){
+                        nextRequests.put(r.getID(), r);
+                    }
+                }
+            }
+            if (!nextRequests.isEmpty()){ return nextRequests; }
         }
         System.out.println("Error: no new requests exist");
         return null;
@@ -163,7 +171,7 @@ class Handler {
 
     }
 
-    private LocalDateTime setStartTime(TreeMap<LocalDateTime, HashMap<Integer, Request>> schedule){
+    private LocalDateTime setStartTime(TreeMap<LocalDateTime, ArrayList<Request>> schedule){
 
         return schedule.firstKey();
 
@@ -171,11 +179,11 @@ class Handler {
 
     private void printRequests(){
         for (LocalDateTime k : requestSchedule.keySet()){
-            for (Integer id : requestSchedule.get(k).keySet()){
-                System.out.printf("Request #%03d     %s     %26s     %26s\n", id,
-                        formatTimeStamp(requests.get(id).getPickUpTime()),
-                        requests.get(id).getPickUpLoc().toString(),
-                        requests.get(id).getDropOffLoc().toString());
+            for (Request r : requestSchedule.get(k)){
+                System.out.printf("Request #%03d     %s     %26s     %26s\n", r.getID(),
+                        formatTimeStamp(r.getPickUpTime()),
+                        r.getPickUpLoc().toString(),
+                        r.getDropOffLoc().toString());
             }
         }
     }

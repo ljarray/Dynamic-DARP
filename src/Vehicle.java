@@ -280,7 +280,6 @@ class Vehicle {
 
         void setRoute(LocalDateTime currentTime){ // currentTime = LocalDateTime.now(); in a real world application
 
-            updateRequests(currentTime);
             schedule.clear();
 
             currentLocation = location;
@@ -306,7 +305,7 @@ class Vehicle {
             }
 
             // If no requests have been picked up or serviced, find the first request for the day, based on earliest pickup
-            if(scheduledPickUps.isEmpty() && scheduledDropoffs.isEmpty()){
+            if(scheduledPickUps.isEmpty() && scheduledDropoffs.isEmpty() && deliveredRequests.isEmpty()){
 
                 LocalDateTime earliestPickup = LocalDateTime.MAX; // latest date and time supported by LocalDateTime
 
