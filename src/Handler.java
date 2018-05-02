@@ -29,19 +29,21 @@ class Handler {
 
     void runHandler(){
 
+        int numOfRequests = 166; // The number of requests to process for testing. 166 is entire data set.
 
         System.out.println("\nRequests List\n" + "------------------------------");
 
         printRequests();
 
         currentTime = setStartTime(requestSchedule);
-        LocalDateTime endTime = requests.get(data.getRequestIdList().get(9)).getDropOffTime().plusMinutes(30);
+        LocalDateTime requestCutOff = requests.get(data.getRequestIdList().get(numOfRequests - 1)).getPickUpTime().plusMinutes(2);
+        LocalDateTime endTime = requests.get(data.getRequestIdList().get(numOfRequests - 1)).getDropOffTime().plusMinutes(30);
 
         while (currentTime.isBefore(endTime)){
 
             updateVehicles(currentTime);
 
-            if (newRequestExists(currentTime)){
+            if (currentTime.isBefore(requestCutOff) && newRequestExists(currentTime)){
                 getNextRequests(currentTime).values().forEach(this::assignRequestToAVehicle);
             }
             else runGeneticAlgorithm();
@@ -91,13 +93,11 @@ class Handler {
         if(vehicles.size() == 0){
             Vehicle v = new Vehicle(defaults);
             vehicles.add(v);
+            System.out.printf("\n(%s)     Vehicle #%03d created.\n", formatTimeStamp(currentTime), v.getID());
+
             v.addRequest(request);
-
-            System.out.println("Request #" + request.getID()
-                    + " added to vehicle #" + v.getID() + ".");
-
-            System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
-
+            System.out.printf("(%s)     Request #%03d added to vehicle #%03d.\n", formatTimeStamp(currentTime), request.getID(), v.getID());
+            System.out.printf("(%s)     Setting route for Vehicle #%03d...\n\n", formatTimeStamp(currentTime), v.getID());
             setRouteForVehicle(v);
 
         }
@@ -106,7 +106,7 @@ class Handler {
 
             // cost of adding a vehicle is the distance between the depot and pickup
 
-            double newVehicleCost = this.defaults.getDepotLocation().distanceTo(request.getPickUpLoc());
+            double newVehicleCost = (this.defaults.getDepotLocation().distanceTo(request.getPickUpLoc()) + this.defaults.getDepotLocation().distanceTo(request.getPickUpLoc())) / 2.0;
 
             for ( Vehicle v : vehicles){
                 // if seats are available
@@ -120,28 +120,40 @@ class Handler {
             if (vehicles.size() < this.defaults.getMaxVehicles() && newVehicleCost < routeCosts.firstKey()){
                 Vehicle v = new Vehicle(defaults);
                 vehicles.add(v);
+                System.out.printf("(%s)     Vehicle #%03d created.\n", formatTimeStamp(currentTime), v.getID());
+
                 v.addRequest(request);
-
-                System.out.println("Request #" + request.getID()
-                        + " added to Vehicle #" + v.getID() + ".");
-
-                System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
-
+                System.out.printf("(%s)     Request #%03d added to vehicle #%03d.\n", formatTimeStamp(currentTime), request.getID(), v.getID());
+                System.out.printf("(%s)     Setting route for Vehicle #%03d...\n\n", formatTimeStamp(currentTime), v.getID());
                 setRouteForVehicle(v);
 
             }
             else{
+                if (!routeCosts.isEmpty()){
+                    Vehicle v = routeCosts.firstEntry().getValue();
 
-                Vehicle v = routeCosts.firstEntry().getValue();
+                    v.addRequest(request);
+                    System.out.printf("\n(%s)     Request #%03d added to vehicle #%03d.\n", formatTimeStamp(currentTime), request.getID(), v.getID());
+                    System.out.printf("(%s)     Setting route for Vehicle #%03d...\n\n", formatTimeStamp(currentTime), v.getID());
 
-                System.out.println("Request #" + request.getID()
-                        + " added to Vehicle #" + v.getID() + ".");
+                    setRouteForVehicle(v);
+                }
+                else {
+                    System.out.printf("(%s)     All vehicles are full.\n", formatTimeStamp(currentTime));
 
-                v.addRequest(request);
+                    for ( Vehicle v : vehicles){
+                        // recalculate route costs with relaxed seat constraint
+                        routeCosts.put(v.route.getInsertionCost(request), v);
+                    }
 
-                System.out.println("Setting route for Vehicle #" + v.getID() + "...\n");
+                    Vehicle v = routeCosts.firstEntry().getValue();
 
-                setRouteForVehicle(v);
+                    v.addRequest(request);
+                    System.out.printf("\n(%s)     Request #%03d added to vehicle #%03d.\n", formatTimeStamp(currentTime), request.getID(), v.getID());
+                    System.out.printf("(%s)     Setting route for Vehicle #%03d...\n\n", formatTimeStamp(currentTime), v.getID());
+
+                    setRouteForVehicle(v);
+                }
             }
         }
     }

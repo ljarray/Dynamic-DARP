@@ -62,7 +62,7 @@ class Defaults {
         this.TIME_TO_DROPOFF = 60; // in min
         this.MAX_ROUTE_LENGTH = 480; // in min
         this.VEHICLE_DEFAULT_SPEED = 0.43333333333; // km per minute, default is 50 kmh .8333333
-        this.MAX_VEHICLES = 3; // 10
+        this.MAX_VEHICLES = 5; // 10
         this.MAX_SEATS = 6;
 
         // weights are based on the customer choice defaults

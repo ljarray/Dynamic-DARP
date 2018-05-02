@@ -41,9 +41,6 @@ class Vehicle {
         route = new Route();
         location = DEPOT_LOCATION; // starting location is the depot
 
-        System.out.println("\nVehicle #" + getID() + " created.");
-
-
     }
 
     // --------------------------------------------
@@ -141,33 +138,40 @@ class Vehicle {
     }
 
     void updateRequests(LocalDateTime currentTime){
+        // Updates Request statuses & times. If currentTime is after an event on the schedule, the program assumes the event
+        // took place. In the final implementation, this can be replaced by Web Service requests, where drivers update the
+        // status of requests.
 
         if(route.schedule != null){
 
-            // if no next request exists
-            if (route.schedule.higherKey(currentTime) == null){
+            // If the vehicle is not scheduled to handle any requests, start heading for the depot.
+            // This is to send vehicles home at the end of their shift,
+            // and to prevent vehicles from lingering in remote areas of the city.
+
+            if (route.schedule.isEmpty()){
                 nextLocation = DEPOT_LOCATION;
             }
             else {
 
-                LocalDateTime key = route.schedule.higherKey(currentTime);
-                SortedMap<LocalDateTime, Request> requestsToUpdate = route.schedule.headMap(key);
+                SortedMap<LocalDateTime, Request> requestsToUpdate = route.schedule.headMap(currentTime);
+                HashMap<LocalDateTime, Request> requestsToRemove = new HashMap<>();
 
                 for (LocalDateTime time : requestsToUpdate.keySet()){
-                    Request request = requestsToUpdate.get(time);
+                    Request request = route.schedule.get(time);
 
                     if (request.getStatus().equals("In Transit")){
                         dropOffRequest(request, time);
-                        updateLocation(request.getDropOffLoc());
                     }
                     else if (request.getStatus().equals("Unserviced")){
                         pickUpRequest(request, time);
-                        updateLocation(request.getPickUpLoc());
                     }
 
-                    // Removes performed events from the schedule
-                    route.schedule.remove(time, request);
+                    requestsToRemove.put(time, request);
+                }
 
+                for (LocalDateTime time : requestsToRemove.keySet()){
+                    // Removes performed events from the schedule
+                    route.schedule.remove(time, requestsToRemove.get(time));
                 }
             }
         }
@@ -182,7 +186,7 @@ class Vehicle {
             request.setPickUpTime(time);
             request.setStatus("In Transit");
             transactions.add(formatTimeStamp(time) + "\t" + "Request #" + request.getID() + " was picked up");
-            System.out.println("Request #" + request.getID() + " is now in transit.");
+            System.out.printf("(%s)     Request #%03d is in transit.\n", formatTimeStamp(time), request.getID());
 
         }
         else {
@@ -203,7 +207,7 @@ class Vehicle {
             request.setDropOffTime(time);
             request.setStatus("Delivered");
             transactions.add(formatTimeStamp(time) + "\t" + "Request #" + request.getID() + " was dropped off");
-            System.out.println("Request #" + request.getID() + " has been delivered.");
+            System.out.printf("(%s)     Request #%03d has been delivered.\n", formatTimeStamp(time), request.getID());
 
         }
         else {
@@ -330,13 +334,13 @@ class Vehicle {
 
             // while there are still requests to schedule
 
-            int breakCount = 0;
+//            int breakCount = 0;
 
             while (!unscheduledRequests.isEmpty() || !scheduledPickUps.isEmpty()){
 
-                if (breakCount > 5){
-                    break;
-                }
+//                if (breakCount > 5){
+//                    break;
+//                }
 
                 TreeMap<Double, Request> nearestFour = getNearestFour(currentLocation, currentTime);
                 Request nextRequest = findCheapestMove(nearestFour.values());
@@ -359,7 +363,7 @@ class Vehicle {
 
                 currentLocation = nextLocation;
 
-                breakCount++;
+//                breakCount++;
             }
 
             routeDuration = ChronoUnit.SECONDS.between(routeStartTime, currentTime)/60.0;
@@ -427,7 +431,7 @@ class Vehicle {
             }
 
             // the number of requests en route cannot exceed the vehicle's available space
-            if (requestsToPickUp.size() < MAX_SEATS){
+            if (scheduledPickUps.size() < MAX_SEATS){
                 for (Request pickup : requestsToPickUp.values()){
                     separationTree.put(
                             getSeparation(currentLocation, pickup.getPickUpLoc(), currentTime, pickup.getDropOffTime()), pickup);
@@ -581,6 +585,12 @@ class Vehicle {
 
         double getInsertionCost(Request request){
 
+            // vehicles with no requests are treated as new vehicles.
+
+            if (schedule.isEmpty()){
+                return (location.distanceTo(request.getPickUpLoc()) + location.distanceTo(request.getDropOffLoc())) / 2.0;
+            }
+
             // insertion cost is calculated as the total distance between the request pick up / drop off locations
             // and the closest stops already in the route.
             // Penalty terms are added for vehicles which have been behind or are close to their route duration limit
@@ -654,7 +664,7 @@ class Vehicle {
 
         public void printRoute(){
             System.out.println(this);
-            System.out.printf("Route Duration: %.2f min\n", routeDuration);
+            System.out.printf("Route Duration: %.0f hours %.0f min\n", Math.floor(routeDuration / 60), routeDuration % 60);
 
             printStatuses(requests);
         }
