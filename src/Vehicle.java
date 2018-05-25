@@ -82,11 +82,6 @@ class Vehicle {
     //             METHODS
     // --------------------------------------------
 
-
-    void updateLocation(LocationPoint nextLocation){
-        location = nextLocation;
-    }
-
     void updateLocationAtTime(LocalDateTime currentTime){
 
         LocalDateTime arrivalTime = LocalDateTime.now();
@@ -126,7 +121,7 @@ class Vehicle {
 
     }
 
-    public void removeRequest(Request request, LocalDateTime time){
+    void removeRequest(Request request, LocalDateTime time){
         if (request.getStatus().equals("Unserviced")){
             requests.remove(request.getID(), request);
         }

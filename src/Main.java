@@ -10,11 +10,11 @@ import java.util.regex.Pattern;
 public class Main {
 
     public static void main(String[] args) {
-	// write your code here
 
         String file = "data/data_Mac.txt";
         Defaults defaults = new Defaults();
-        Data data = new Data(file, defaults);
+        Data data = new Data();
+        data.readProblem(file, defaults);
 
         Handler eventHandler = new Handler(data, defaults);
 
@@ -88,15 +88,17 @@ class Defaults {
 
 class Data {
 
-    private TreeMap<LocalDateTime, ArrayList<Request>> requestSchedule = new TreeMap<>();
-    private HashMap<Integer, Request> requests = new HashMap<>();
-    private ArrayList<Integer> requestIdList = new ArrayList<>();
+    private TreeMap<LocalDateTime, ArrayList<Request>> requestSchedule;
+    private HashMap<Integer, Request> requests;
+    private ArrayList<Integer> requestIdList;
 
-    Data(String fileName, Defaults defaults){
-        readProblem(fileName, defaults);
+    Data(){
+        this.requestSchedule = new TreeMap<>();
+        this.requests = new HashMap<>();
+        this.requestIdList = new ArrayList<>();
     }
 
-    private void readProblem(String fileName, Defaults defaults){
+    void readProblem(String fileName, Defaults defaults){
 
         BufferedReader reader = null;
 
